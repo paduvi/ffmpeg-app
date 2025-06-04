@@ -1,0 +1,68 @@
+/* JavaFX CSS - Leave this comment until you have at least create one rule which uses -fx-Property */
+.root {
+	-fx-focus-color: transparent;
+	-fx-faint-focus-color: transparent;
+}
+
+.context-menu {
+    -fx-padding: 0;
+}
+
+.button {
+	-fx-cursor: hand;
+	-fx-background-radius: 20px;
+}
+
+.table-view {
+	-fx-text-fill: #555;
+	-fx-background-color: #e9ebee;
+	-fx-table-cell-border-color: transparent;
+	-fx-table-header-border-color: transparent;
+}
+
+.table-view .column-header-background {
+	-fx-background-color: #f6f6f6;
+	-fx-border-color: transparent transparent #eee transparent;
+}
+
+.table-view .column-header-background .label {
+	-fx-background-color: transparent;
+	-fx-alignment: CENTER-LEFT;
+	-fx-padding: 20px 0 20px 0;
+}
+
+.table-row-cell {
+	-fx-background-color: white;
+	-fx-cell-size: 50px;
+}
+
+.table-view .column-header, .table-view .filler {
+	-fx-background-color: transparent;
+}
+
+.table-column {
+	-fx-alignment: CENTER-LEFT;
+}
+
+.selectColumn {
+	-fx-alignment: CENTER;
+}
+
+.selectColumn .check-box .box {
+	-fx-background-color: white;
+	-fx-border-color: #777;
+	-fx-border-radius: 3px;
+}
+
+.selectColumn .check-box .mark {
+	-fx-text-fill: #777;
+}
+
+.selectColumn .check-box:selected .mark {
+	-fx-background-color: #777;
+}
+
+.table-view .cell {
+	-fx-text-fill: #555;
+	-fx-table-cell-border-color: transparent;
+}

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.layout.AnchorPane?>
+
+
+<AnchorPane prefHeight="600.0" prefWidth="600.0" style="-fx-background-color: #e9ebee;" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8" fx:controller="com.chotoxautinh.controller.MainController">
+   <children>
+      <TableView fx:id="tableView" editable="true" focusTraversable="false" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="20.0" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="70.0">
+        <columns>
+          <TableColumn fx:id="selectColumn" prefWidth="50.0" resizable="false" sortable="false" styleClass="selectColumn" />
+          <TableColumn fx:id="nameColumn" editable="false" prefWidth="255.0" resizable="false" sortable="false" text="Name" />
+            <TableColumn fx:id="sizeColumn" editable="false" prefWidth="120.0" resizable="false" sortable="false" text="Size" />
+            <TableColumn fx:id="typeColumn" editable="false" prefWidth="125.0" resizable="false" sortable="false" text="Type" />
+        </columns>
+      </TableView>
+      <HBox layoutX="14.0" layoutY="14.0" prefHeight="34.0" prefWidth="417.0" spacing="15.0" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="168.0" AnchorPane.topAnchor="15.0">
+         <children>
+            <Button mnemonicParsing="false" onAction="#handleOpen" style="-fx-background-color: #51DC47;" text="Add Video" textFill="WHITE">
+               <graphic>
+                  <ImageView pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../img/add-1-icon.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+            </Button>
+            <Button mnemonicParsing="false" onAction="#handleRemove" style="-fx-background-color: #C1392B;" text="Remove" textFill="WHITE">
+               <graphic>
+                  <ImageView pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../img/remove.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+            </Button>
+            <Button layoutX="135.0" layoutY="10.0" mnemonicParsing="false" onAction="#handleSelectAll" style="-fx-background-color: #009688;" text="Select All" textFill="WHITE">
+               <graphic>
+                  <ImageView pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../img/check.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+            </Button>
+         </children>
+      </HBox>
+      <Button layoutX="481.0" layoutY="15.0" mnemonicParsing="false" onAction="#handleConvert" style="-fx-background-color: #FFD600;" text="Convert" textFill="RED" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="15.0">
+         <graphic>
+            <ImageView pickOnBounds="true" preserveRatio="true">
+               <image>
+                  <Image url="@../img/bua-liem.png" />
+               </image>
+            </ImageView>
+         </graphic>
+         <font>
+            <Font name="System Bold" size="13.0" />
+         </font>
+      </Button>
+   </children>
+</AnchorPane>
