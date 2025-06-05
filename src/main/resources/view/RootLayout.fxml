@@ -32,15 +32,6 @@
                            </image>
                         </ImageView>
                      </graphic></MenuItem>
-                  <MenuItem mnemonicParsing="false" onAction="#handleHelpAction" text="Help Content">
-                     <graphic>
-                        <ImageView fitHeight="24.0" fitWidth="24.0" pickOnBounds="true" preserveRatio="true">
-                           <image>
-                              <Image url="@../img/hao.png" />
-                           </image>
-                        </ImageView>
-                     </graphic>
-                  </MenuItem>
             </items>
           </Menu>
         </menus>

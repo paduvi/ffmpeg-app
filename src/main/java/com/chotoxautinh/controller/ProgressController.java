@@ -9,9 +9,12 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 import java.util.prefs.Preferences;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.bytedeco.javacpp.Loader;
 
 import com.chotoxautinh.Main;
 import com.chotoxautinh.model.Video;
@@ -41,6 +44,7 @@ public class ProgressController {
 	private ProgressBar progressBar;
 	private double progressValue;
 	private boolean running = false;
+	private CountDownLatch latch;
 
 	@FXML
 	private Label timeLabel;
@@ -51,9 +55,8 @@ public class ProgressController {
 	@FXML
 	private Button openBtn;
 
-	private String getBinaryPath() {
-		Preferences prefs = Preferences.userNodeForPackage(Main.class);
-		return prefs.get("binary-path", "/usr/local/bin/ffmpeg");
+	public static String getBinaryPath() {
+		return Loader.load(org.bytedeco.ffmpeg.ffmpeg.class);
 	}
 
 	public void setVideos(List<Video> videos) {
@@ -62,13 +65,17 @@ public class ProgressController {
 		// ffmpeg -i {input} -vcodec h264 -acodec aac -strict -2 output.mp4
 		progressBar.setProgress(0);
 		progressValue = 0;
+		latch = new CountDownLatch(videos.size());
+
 		running = true;
 		timeLabel.setText("0%");
 		for (Video video : videos) {
 			ProcessBuilder builder = new ProcessBuilder(getBinaryPath(), "-i", video.getPath(), "-vcodec", "h264",
 					"-acodec", "aac", "-strict", "-2",
-					folder + "/" + video.getName() + "[" + new Timestamp(System.currentTimeMillis()) + "]" + ".mp4");
+					folder + "/" + video.getName() + "[" + new Timestamp(System.currentTimeMillis()).toString()
+							.replace(":", "").replace(".", "").replace(" ", "-") + "]" + ".mp4");
 			builder.redirectErrorStream(true);
+
 			Task<Double> task = new Task<Double>() {
 
 				@Override
@@ -78,38 +85,41 @@ public class ProgressController {
 						if (isCancelled())
 							return null;
 						double currentProgress = 0;
+						double currentSeconds = 0;
 						Process process = builder.start();
-						BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-						String line = null;
-						double totalSeconds = 0;
+						try (BufferedReader reader = new BufferedReader(
+								new InputStreamReader(process.getInputStream()))) {
+							String line = null;
+							double totalSeconds = 0;
 
-						while ((line = reader.readLine()) != null) {
-							if (isCancelled()) {
-								process.destroy();
-								break;
-							}
-							// Find duration
-							Pattern durPattern = Pattern.compile("^\\s*Duration: (\\d+:\\d+:\\d+.\\d+).*");
-							Matcher durMatcher = durPattern.matcher(line);
-							if (durMatcher.matches()) {
-								totalSeconds = calculateSecond(durMatcher.group(1));
-								continue;
-							}
-							Pattern timePattern = Pattern.compile("^.*time=(\\d+:\\d+:\\d+.\\d+).*");
-							Matcher timeMatcher = timePattern.matcher(line);
-							if (timeMatcher.matches()) {
-								double currentSeconds = calculateSecond(timeMatcher.group(1));
-								double updateProgress = currentSeconds * totalProgress / totalSeconds;
+							while ((line = reader.readLine()) != null) {
+								if (isCancelled()) {
+									process.destroy();
+									break;
+								}
+								// Find duration
+								Pattern durPattern = Pattern.compile("^\\s*Duration: (\\d+:\\d+:\\d+.\\d+).*");
+								Matcher durMatcher = durPattern.matcher(line);
+								if (durMatcher.matches()) {
+									totalSeconds = calculateSecond(durMatcher.group(1));
+									continue;
+								}
+								Pattern timePattern = Pattern.compile("^.*time=(\\d+:\\d+:\\d+.\\d+).*");
+								Matcher timeMatcher = timePattern.matcher(line);
+								if (timeMatcher.matches()) {
+									currentSeconds = calculateSecond(timeMatcher.group(1));
+									double updateProgress = currentSeconds * totalProgress / totalSeconds;
 
-								progressValue += (updateProgress - currentProgress);
-								updateValue(progressValue);
-								currentProgress = updateProgress;
-								continue;
+									progressValue += (updateProgress - currentProgress);
+									updateValue(progressValue);
+									currentProgress = updateProgress;
+									continue;
+								}
 							}
+							progressValue += (totalProgress - currentProgress);
+							latch.countDown();
+							return progressValue;
 						}
-						progressValue += (totalProgress - currentProgress);
-						reader.close();
-						return progressValue;
 					}
 				}
 			};
@@ -119,7 +129,7 @@ public class ProgressController {
 				@Override
 				public void changed(ObservableValue<? extends Double> observable, Double oldValue, Double newValue) {
 					progressBar.setProgress(newValue);
-					if (newValue >= 1) {
+					if (latch.getCount() == 0) {
 						timeLabel.setText("Completed!");
 						openBtn.setVisible(true);
 						btn.setText("Close");

@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -60,10 +61,12 @@ public class MainController {
 		FileChooser fileChooser = new FileChooser();
 
 		// Set extension filter
-		fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("MPEG (.mpeg,mp4,mp3)", "*.mpeg", "*.mp4", "*.mp3"));
+		fileChooser.getExtensionFilters()
+				.add(new FileChooser.ExtensionFilter("MPEG (.mpeg,mp4,mp3)", "*.mpeg", "*.mp4", "*.mp3"));
 		fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("QuickTime File Format (.mov)", "*.mov"));
 		fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("AVI (.avi)", "*.avi"));
-		fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Ogg Video (.ogg,ogv)", "*.ogv", "*.ogg"));
+		fileChooser.getExtensionFilters()
+				.add(new FileChooser.ExtensionFilter("Ogg Video (.ogg,ogv)", "*.ogv", "*.ogg"));
 		fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("GIF (.gif)", "*.gif"));
 		fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Flash Video (.flv)", "*.flv"));
 		fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("M4V (.m4v)", "*.m4v"));
@@ -73,9 +76,18 @@ public class MainController {
 		fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Vob (.vob)", "*.vob"));
 		fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Dirac (.dirac)", "*.dirac"));
 		fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("RealMedia (.rm)", "*.rm"));
-		fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Advanced Systems Format (.asf)", "*.asf"));
-		fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Material Exchange Format (.mxf)", "*.mxf"));
-		fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Nullsoft Streaming Video (.nsv)", "*.nsv"));
+		fileChooser.getExtensionFilters()
+				.add(new FileChooser.ExtensionFilter("Advanced Systems Format (.asf)", "*.asf"));
+		fileChooser.getExtensionFilters()
+				.add(new FileChooser.ExtensionFilter("Material Exchange Format (.mxf)", "*.mxf"));
+		fileChooser.getExtensionFilters()
+				.add(new FileChooser.ExtensionFilter("Nullsoft Streaming Video (.nsv)", "*.nsv"));
+
+		List<String> allExtensions = new LinkedList<>();
+		for (FileChooser.ExtensionFilter extensionFilter : fileChooser.getExtensionFilters()) {
+			allExtensions.addAll(extensionFilter.getExtensions());
+		}
+		fileChooser.getExtensionFilters().add(0, new FileChooser.ExtensionFilter("All", allExtensions));
 
 		// Show open file dialog
 		List<File> files = fileChooser.showOpenMultipleDialog(mainApp.getPrimaryStage());
@@ -109,7 +121,7 @@ public class MainController {
 			if (video.getSelected())
 				list.add(video);
 		}
-		if (list.size() == 0){
+		if (list.size() == 0) {
 			Alert alert = new Alert(AlertType.WARNING);
 			alert.setTitle("Warning");
 			alert.setHeaderText(null);
@@ -134,7 +146,7 @@ public class MainController {
 			// Set the persons into the controller.
 			ProgressController controller = loader.getController();
 			controller.setStage(dialogStage);
-			
+
 			controller.setVideos(list);
 
 			dialogStage.show();
@@ -145,10 +157,10 @@ public class MainController {
 	}
 
 	private void loadVideoDataFromFiles(List<File> files) {
+		// Check duplicated files
 		List<String> mapped = videoData.stream().map(video -> video.getPath()).collect(Collectors.toList());
 		for (File file : files) {
-			if (~mapped.indexOf(file.getAbsolutePath()) == 0) // not exist ~(-1)
-																// = 0
+			if (!mapped.contains(file.getAbsolutePath()))
 				videoData.add(new Video(file));
 		}
 	}

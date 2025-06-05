@@ -1,7 +1,7 @@
 package com.chotoxautinh;
 
 import java.io.IOException;
-import java.util.prefs.Preferences;
+import org.bytedeco.javacpp.Loader;
 
 import com.chotoxautinh.controller.MainController;
 import com.chotoxautinh.controller.RootController;
@@ -24,7 +24,7 @@ public class Main extends Application {
 	@Override
 	public void start(Stage primaryStage) {
 		this.primaryStage = primaryStage;
-		this.primaryStage.setTitle("FFMPEG App By Chó To");
+		this.primaryStage.setTitle("FFMPEG App By Dogy");
 		this.primaryStage.setResizable(false);
 		this.primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/img/dog_logo.jpg")));
 
@@ -37,6 +37,9 @@ public class Main extends Application {
 	 */
 	public void initRootLayout() {
 		try {
+			// Load FFMPEG binary
+			Loader.load(org.bytedeco.ffmpeg.ffmpeg.class);
+			
 			// Load root layout from fxml file.
 			FXMLLoader loader = new FXMLLoader();
 			loader.setLocation(getClass().getResource("/view/RootLayout.fxml"));
@@ -80,25 +83,6 @@ public class Main extends Application {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-	
-	public void setBinaryPath(String path) {
-		Preferences prefs = Preferences.userNodeForPackage(Main.class);
-		if (path == null) {
-			prefs.put("binary-path", "/usr/local/bin/ffmpeg");
-		} else {
-			prefs.put("binary-path", path);
-		}
-	}
-	
-	public String getBinaryPath() {
-		Preferences prefs = Preferences.userNodeForPackage(Main.class);
-		String path = prefs.get("binary-path", null);
-		if (path == null) {
-			path = "/usr/local/bin/ffmpeg";
-			setBinaryPath(path);
-		}
-		return path;
 	}
 
 	/**
