@@ -153,6 +153,12 @@ public class MainController {
 
 		} catch (IOException e) {
 			e.printStackTrace();
+			Alert alert = new Alert(AlertType.ERROR);
+			alert.setTitle("Error");
+			alert.setHeaderText(null);
+			alert.setContentText(e.getMessage());
+
+			alert.showAndWait();
 		}
 	}
 

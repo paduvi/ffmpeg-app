@@ -10,6 +10,8 @@ import javafx.application.Application;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.image.Image;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
@@ -22,7 +24,7 @@ public class Main extends Application {
 	private BorderPane rootLayout;
 
 	@Override
-	public void start(Stage primaryStage) {
+	public void start(Stage primaryStage) throws IOException {
 		this.primaryStage = primaryStage;
 		this.primaryStage.setTitle("FFMPEG App By Dogy");
 		this.primaryStage.setResizable(false);
@@ -35,16 +37,16 @@ public class Main extends Application {
 	/**
 	 * Initializes the root layout.
 	 */
-	public void initRootLayout() {
+	public void initRootLayout() throws IOException {
 		try {
 			// Load FFMPEG binary
 			Loader.load(org.bytedeco.ffmpeg.ffmpeg.class);
-			
+
 			// Load root layout from fxml file.
 			FXMLLoader loader = new FXMLLoader();
 			loader.setLocation(getClass().getResource("/view/RootLayout.fxml"));
 			rootLayout = (BorderPane) loader.load();
-			
+
 			RootController controller = loader.getController();
 			controller.setMainApp(this);
 
@@ -60,14 +62,21 @@ public class Main extends Application {
 			primaryStage.setScene(scene);
 			primaryStage.show();
 		} catch (IOException e) {
-			e.printStackTrace();
+			Alert alert = new Alert(AlertType.ERROR);
+			alert.setTitle("Error");
+			alert.setHeaderText(null);
+			alert.setContentText(e.getMessage());
+
+			alert.showAndWait();
+
+			throw e;
 		}
 	}
-	
+
 	/**
 	 * Shows the person overview inside the root layout.
 	 */
-	public void showMainLayout() {
+	public void showMainLayout() throws IOException {
 		try {
 			// Load person overview.
 			FXMLLoader loader = new FXMLLoader();
@@ -81,7 +90,14 @@ public class Main extends Application {
 			// Set person overview into the center of root layout.
 			rootLayout.setCenter(mainLayout);
 		} catch (IOException e) {
-			e.printStackTrace();
+			Alert alert = new Alert(AlertType.ERROR);
+			alert.setTitle("Error");
+			alert.setHeaderText(null);
+			alert.setContentText(e.getMessage());
+
+			alert.showAndWait();
+
+			throw e;
 		}
 	}
 
@@ -95,6 +111,10 @@ public class Main extends Application {
 	}
 
 	public static void main(String[] args) {
-		launch(args);
+		try {
+			launch(args);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 }

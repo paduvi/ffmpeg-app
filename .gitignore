@@ -3,3 +3,8 @@
 .settings
 target/
 .DS_Store
+dist/
+*.iml
+.idea/
+dist/
+jre/

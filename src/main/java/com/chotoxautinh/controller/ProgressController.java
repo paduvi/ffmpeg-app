@@ -5,7 +5,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +39,7 @@ public class ProgressController {
 	private Stage stage;
 
 	private static Object myLock = new Object();
+	private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy-HHmmss");
 	private List<Task<Double>> taskList = new ArrayList<>();
 
 	@FXML
@@ -71,9 +73,8 @@ public class ProgressController {
 		timeLabel.setText("0%");
 		for (Video video : videos) {
 			ProcessBuilder builder = new ProcessBuilder(getBinaryPath(), "-i", video.getPath(), "-vcodec", "h264",
-					"-acodec", "aac", "-strict", "-2",
-					folder + "/" + video.getName() + "[" + new Timestamp(System.currentTimeMillis()).toString()
-							.replace(":", "").replace(".", "").replace(" ", "-") + "]" + ".mp4");
+					"-acodec", "aac", "-strict", "-2", folder + "/" + video.getName() + "["
+							+ LocalDateTime.now().format(DATE_TIME_FORMATTER) + "]" + ".mp4");
 			builder.redirectErrorStream(true);
 
 			Task<Double> task = new Task<Double>() {
@@ -119,6 +120,16 @@ public class ProgressController {
 							progressValue += (totalProgress - currentProgress);
 							latch.countDown();
 							return progressValue;
+						} catch (Exception e) {
+							e.printStackTrace();
+
+							Alert alert = new Alert(AlertType.ERROR);
+							alert.setTitle("Error");
+							alert.setHeaderText("Ooops, there was an error!");
+							alert.setContentText(e.getMessage());
+
+							alert.showAndWait();
+							throw e;
 						}
 					}
 				}
@@ -192,13 +203,14 @@ public class ProgressController {
 		try {
 			Desktop.getDesktop().open(new File(getContainFolder()));
 		} catch (IOException e) {
+			e.printStackTrace();
+
 			Alert alert = new Alert(AlertType.ERROR);
 			alert.setTitle("Error");
 			alert.setHeaderText("Ooops, there was an error!");
 			alert.setContentText(e.getMessage());
 
 			alert.showAndWait();
-			e.printStackTrace();
 		}
 	}
 
