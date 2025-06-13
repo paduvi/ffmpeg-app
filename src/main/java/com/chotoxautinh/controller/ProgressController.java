@@ -15,6 +15,9 @@ import java.util.prefs.Preferences;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.chotoxautinh.model.AudioCodec;
+import com.chotoxautinh.model.Constants;
+import com.chotoxautinh.model.Preset;
 import org.bytedeco.javacpp.Loader;
 
 import com.chotoxautinh.Main;
@@ -33,9 +36,10 @@ import javafx.stage.Stage;
 public class ProgressController {
 
     private Stage stage;
+    private final Preferences prefs = Preferences.userNodeForPackage(Math.class);
 
     private static final Object LOCK = new Object();
-    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy-HHmmss");
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("ddMMyyyy-HHmmss");
     private final List<Task<Double>> taskList = new ArrayList<>();
 
     @FXML
@@ -53,14 +57,28 @@ public class ProgressController {
     @FXML
     private Button openBtn;
 
-    public static String getBinaryPath() {
-        return Loader.load(org.bytedeco.ffmpeg.ffmpeg.class);
+    private String getBinaryPath() {
+        if (prefs.getBoolean(Constants.USE_DEFAULT_FFMPEG_KEY, true))
+            return Loader.load(org.bytedeco.ffmpeg.ffmpeg.class);
+        return prefs.get(Constants.FFMPEG_LOCATION_KEY, Loader.load(org.bytedeco.ffmpeg.ffmpeg.class));
+    }
+
+    private String getAudioCodec() {
+        return AudioCodec.getValue(prefs.get(Constants.AUDIO_CODEC_KEY, Constants.DEFAULT_AUDIO_CODEC_VALUE.getLabel()));
+    }
+
+    private String getPreset() {
+        return Preset.getValue(prefs.get(Constants.PRESET_KEY, Constants.DEFAULT_PRESET_VALUE.getLabel()));
+    }
+
+    private int getCrf() {
+        return prefs.getInt(Constants.CRF_KEY, Constants.DEFAULT_CRF_VALUE);
     }
 
     public void setVideos(List<Video> videos) {
         String folder = getContainFolder();
 
-        // ffmpeg -i {input} -vcodec h264 -acodec aac -strict -2 output.mp4
+        // ffmpeg -i {input} -c:v h264 -c:a aac -preset medium -crf 23 output.mp4
         progressBar.setProgress(0);
         progressValue = 0;
         latch = new CountDownLatch(videos.size());
@@ -68,9 +86,9 @@ public class ProgressController {
         running = true;
         timeLabel.setText("0%");
         for (Video video : videos) {
-            ProcessBuilder builder = new ProcessBuilder(getBinaryPath(), "-i", video.getPath(), "-vcodec", "h264",
-                    "-acodec", "aac", "-strict", "-2", folder + "/" + video.getName() + "["
-                    + LocalDateTime.now().format(DATE_TIME_FORMATTER) + "]" + ".mp4");
+            ProcessBuilder builder = new ProcessBuilder(getBinaryPath(), "-i", video.getPath(), "-c:v", "h264",
+                    "-c:a", getAudioCodec(), "-preset", getPreset(), "-crf", String.valueOf(getCrf()), folder + "/" + video.getName() + "-"
+                    + LocalDateTime.now().format(DATE_TIME_FORMATTER) + ".mp4");
             builder.redirectErrorStream(true);
 
             Task<Double> task = new Task<>() {
@@ -93,8 +111,11 @@ public class ProgressController {
                                     process.destroy();
                                     break;
                                 }
-                                if (totalSeconds <= 0) {
+                                if (line.startsWith("[")) {
                                     errorMessage.append(line).append("\n");
+                                }
+                                if (line.contains("Error")) {
+                                    throw new Exception(errorMessage.toString());
                                 }
                                 // Find duration
                                 Pattern durPattern = Pattern.compile("^\\s*Duration: (\\d+:\\d+:\\d+.\\d+).*");
@@ -114,21 +135,8 @@ public class ProgressController {
                                     currentProgress = updateProgress;
                                 }
                             }
-                            if (totalSeconds <= 0) {
-                                throw new Exception(errorMessage.toString());
-                            }
                             progressValue += (totalProgress - currentProgress);
                             return progressValue;
-                        } catch (Exception e) {
-                            e.printStackTrace();
-
-                            Alert alert = new Alert(AlertType.ERROR);
-                            alert.setTitle("Error");
-                            alert.setHeaderText("Ooops, there was an error!");
-                            alert.setContentText(e.getMessage());
-
-                            alert.showAndWait();
-                            throw e;
                         } finally {
                             latch.countDown();
                         }
@@ -137,6 +145,18 @@ public class ProgressController {
             };
             taskList.add(task);
             Thread thread = new Thread(task);
+            task.setOnFailed(event -> {
+                running = false;
+                handleCancel();
+
+                Alert alert = new Alert(AlertType.ERROR);
+                alert.setTitle("Error");
+                alert.setHeaderText("Ooops, there was an error!");
+                String message = "File Name: " + video.getPath().substring(video.getPath().lastIndexOf("/") + 1);
+                alert.setContentText(message + "\n" + event.getSource().getException().getMessage());
+
+                alert.showAndWait();
+            });
             task.valueProperty().addListener((observable, oldValue, newValue) -> {
                 progressBar.setProgress(newValue);
                 if (latch.getCount() == 0) {
