@@ -5,8 +5,14 @@ import com.chotoxautinh.model.Constants;
 import com.chotoxautinh.model.Preset;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.prefs.Preferences;
 
@@ -46,6 +52,36 @@ public class SettingController {
 
         ffmpegLocationBtn.setDisable(useDefCkBox.isSelected());
         ffmpegLocationField.setText(prefs.get(Constants.FFMPEG_LOCATION_KEY, ""));
+    }
+
+    @FXML
+    private void handleOpen() {
+        FileChooser fileChooser = new FileChooser();
+        File file = fileChooser.showOpenDialog(stage);
+
+        ProcessBuilder builder = new ProcessBuilder(file.getAbsolutePath(), "-version");
+        builder.redirectErrorStream(true);
+
+        try {
+            Process process = builder.start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String firstLine = reader.readLine(); // đọc dòng đầu tiên
+            process.destroy();
+
+            // Check if first line start with "ffmpeg version"
+            if (firstLine != null && firstLine.toLowerCase().startsWith("ffmpeg version")) {
+                ffmpegLocationField.setText(file.getAbsolutePath());
+            } else {
+                throw new Exception(firstLine);
+            }
+        } catch (Exception e) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Warning");
+            alert.setHeaderText("❌ Invalid or wrong executable.");
+            alert.setContentText(e.getMessage());
+
+            alert.showAndWait();
+        }
     }
 
     @FXML

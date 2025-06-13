@@ -114,7 +114,7 @@ public class ProgressController {
                                 if (line.startsWith("[")) {
                                     errorMessage.append(line).append("\n");
                                 }
-                                if (line.contains("Error")) {
+                                if (line.toLowerCase().contains("error")) {
                                     throw new Exception(errorMessage.toString());
                                 }
                                 // Find duration
