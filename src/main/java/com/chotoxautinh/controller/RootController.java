@@ -2,35 +2,35 @@ package com.chotoxautinh.controller;
 
 import com.chotoxautinh.Main;
 
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 
 public class RootController {
 
-	private Main mainApp;
+    private Main mainApp;
 
-	@FXML
-	private void handleAboutAction(ActionEvent event) {
-		Alert alert = new Alert(AlertType.INFORMATION);
-		alert.setTitle("© 2016 - Dogy. All rights reserved.");
-		alert.setHeaderText("Contact me at:");
-		StringBuilder builder = new StringBuilder();
-		builder.append("• Linkedin: vietphanduc\n");
-		builder.append("• Phone: 0985797649\n");
-		builder.append("• Email: viet3695@gmail.com\n");
-		alert.setContentText(builder.toString());
+    @FXML
+    private void handleAboutAction() {
+        Alert alert = new Alert(AlertType.INFORMATION);
+        alert.setTitle("© 2016 - Dogy. All rights reserved.");
+        alert.setHeaderText("Contact me at:");
+        String builder = """
+                • Linkedin: vietphanduc
+                • Phone: 0985797649
+                • Email: viet3695@gmail.com
+                """;
+        alert.setContentText(builder);
 
-		alert.showAndWait();
-	}
+        alert.showAndWait();
+    }
 
-	@FXML
-	private void handleExitAction(ActionEvent event) {
-		mainApp.getPrimaryStage().close();
-	}
+    @FXML
+    private void handleExitAction() {
+        mainApp.getPrimaryStage().close();
+    }
 
-	public void setMainApp(Main mainApp) {
-		this.mainApp = mainApp;
-	}
+    public void setMainApp(Main mainApp) {
+        this.mainApp = mainApp;
+    }
 }

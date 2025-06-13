@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.image.*?>
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
-<?import java.lang.*?>
+<?import javafx.scene.image.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.layout.AnchorPane?>
 
-<VBox spacing="15.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.chotoxautinh.controller.ProgressController">
+<VBox spacing="15.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.chotoxautinh.controller.ProgressController">
    <children>
       <ProgressBar fx:id="progressBar" prefHeight="20.0" prefWidth="586.0" progress="0.0">
          <VBox.margin>
@@ -21,12 +19,12 @@
                <graphic>
                   <ImageView fitHeight="24.0" fitWidth="24.0" pickOnBounds="true" preserveRatio="true">
                      <image>
-                        <Image url="@../img/hao.png" />
+                        <Image url="@../img/cancel.png" />
                      </image>
                   </ImageView>
                </graphic>
             </Button>
-            <Button fx:id="openBtn" layoutX="343.0" layoutY="5.0" mnemonicParsing="false" onAction="#handleOpen" style="-fx-background-color: #906AA3;" text="Reveal in Finder" textFill="WHITE" visible="false">
+            <Button fx:id="openBtn" layoutX="343.0" layoutY="5.0" mnemonicParsing="false" onAction="#handleOpen" style="-fx-background-color: #906AA3;" text="Show in Folder" textFill="WHITE" visible="false">
                <graphic>
                   <ImageView pickOnBounds="true" preserveRatio="true">
                      <image>
