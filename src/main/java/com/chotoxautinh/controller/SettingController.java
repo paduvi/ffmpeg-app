@@ -6,19 +6,15 @@ import com.chotoxautinh.model.Preset;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.FileChooser;
-import javafx.stage.Stage;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStreamReader;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.prefs.Preferences;
 
-public class SettingController {
+public class SettingController extends AbstractController {
 
-    private Stage stage;
     private final Preferences prefs = Preferences.userNodeForPackage(Math.class);
 
     @FXML
@@ -57,7 +53,7 @@ public class SettingController {
     @FXML
     private void handleOpen() {
         FileChooser fileChooser = new FileChooser();
-        File file = fileChooser.showOpenDialog(stage);
+        File file = fileChooser.showOpenDialog(getStage());
 
         ProcessBuilder builder = new ProcessBuilder(file.getAbsolutePath(), "-version");
         builder.redirectErrorStream(true);
@@ -117,15 +113,11 @@ public class SettingController {
         prefs.put(Constants.PRESET_KEY, presetComboBox.getValue());
         prefs.putInt(Constants.CRF_KEY, (int) crfSlider.getValue());
 
-        this.stage.close();
+        getStage().close();
     }
 
     @FXML
     private void handleCancel() {
-        this.stage.close();
-    }
-
-    public void setStage(Stage stage) {
-        this.stage = stage;
+        getStage().close();
     }
 }

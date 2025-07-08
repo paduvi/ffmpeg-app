@@ -66,3 +66,54 @@
 	-fx-text-fill: #555;
 	-fx-table-cell-border-color: transparent;
 }
+
+/* Side Menu Styles */
+#sideMenu {
+	-fx-background-color: linear-gradient(to bottom, #fafafa, #f0f0f0);
+	-fx-padding: 15 10;
+	-fx-spacing: 12;
+	-fx-border-width: 0 1 0 0;
+	-fx-border-color: #e0e0e0;
+}
+
+#sideMenu .toggle-button:hover {
+	-fx-background-color: rgba(0, 0, 0, 0.05);
+}
+
+#sideMenu .toggle-button:selected {
+	-fx-background-color: #007bff;
+	-fx-text-fill: white;
+}
+
+/* If your toggle buttons have icons */
+#sideMenu .toggle-button .image-view {
+	-fx-padding: 0 10 0 0;
+}
+
+/* Side Menu Toggle Button Styles */
+#sideMenu .toggle-button {
+	-fx-background-color: transparent;
+	-fx-text-fill: #505050;
+	-fx-font-size: 14px;
+	-fx-padding: 10 15;
+	-fx-background-radius: 5;
+	-fx-border-radius: 5;
+	-fx-cursor: hand;
+	-fx-alignment: CENTER-LEFT;
+	-fx-min-width: 200;
+}
+
+#sideMenu .toggle-button:disabled {
+	-fx-opacity: 1.0; /* Override default disabled opacity */
+}
+
+#sideMenu .toggle-button:selected {
+	-fx-background-color: #007bff;
+	-fx-text-fill: white;
+	-fx-cursor: default; /* Change cursor for selected state */
+}
+
+#sideMenu .toggle-button:selected:disabled {
+	-fx-background-color: #007bff; /* Maintain the selected color even when disabled */
+	-fx-text-fill: white;
+}

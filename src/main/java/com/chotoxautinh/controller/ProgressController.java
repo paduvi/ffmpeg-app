@@ -33,9 +33,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.stage.Stage;
 
-public class ProgressController {
+public class ProgressController extends AbstractController {
 
-    private Stage stage;
     private final Preferences prefs = Preferences.userNodeForPackage(Math.class);
 
     private static final Object LOCK = new Object();
@@ -163,7 +162,7 @@ public class ProgressController {
                     timeLabel.setText("Completed!");
                     openBtn.setVisible(true);
                     btn.setText("Close");
-                    stage.setTitle("Done!");
+                    getStage().setTitle("Done!");
                     running = false;
                 } else {
                     timeLabel.setText(Math.round(newValue * 100) + "%");
@@ -202,7 +201,7 @@ public class ProgressController {
                 handleCancel();
             }
         } else {
-            stage.close();
+            getStage().close();
         }
     }
 
@@ -212,7 +211,7 @@ public class ProgressController {
         }
         btn.setText("Close");
         timeLabel.setText("Canceled!");
-        stage.setTitle("Canceled!");
+        getStage().setTitle("Canceled!");
         running = false;
     }
 
@@ -232,6 +231,7 @@ public class ProgressController {
         }
     }
 
+    @Override
     public void setStage(Stage stage) {
         stage.setOnCloseRequest(event -> {
             if (running) {
@@ -248,6 +248,6 @@ public class ProgressController {
                 }
             }
         });
-        this.stage = stage;
+        super.setStage(stage);
     }
 }

@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.chotoxautinh.Main;
 import com.chotoxautinh.model.Video;
 
 import javafx.collections.FXCollections;
@@ -25,9 +24,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
-public class MainController {
-
-    private Main mainApp;
+public class VideoCompressionController extends AbstractController {
 
     @FXML
     private TableView<Video> tableView;
@@ -88,7 +85,7 @@ public class MainController {
         fileChooser.getExtensionFilters().addFirst(new FileChooser.ExtensionFilter("All", allExtensions));
 
         // Show open file dialog
-        List<File> files = fileChooser.showOpenMultipleDialog(mainApp.getPrimaryStage());
+        List<File> files = fileChooser.showOpenMultipleDialog(getStage());
 
         if (files != null && !files.isEmpty()) {
             loadVideoDataFromFiles(files);
@@ -130,8 +127,8 @@ public class MainController {
             VBox progress = loader.load();
             Stage dialogStage = new Stage();
             dialogStage.setTitle("Processing...");
-            dialogStage.initModality(Modality.WINDOW_MODAL);
-            dialogStage.initOwner(mainApp.getPrimaryStage());
+            dialogStage.initModality(Modality.APPLICATION_MODAL);
+            dialogStage.initOwner(getStage());
             Scene scene = new Scene(progress);
             scene.getStylesheets().add(getClass().getResource("/style/application.css").toExternalForm());
             dialogStage.setScene(scene);
@@ -143,7 +140,6 @@ public class MainController {
             controller.setVideos(list);
 
             dialogStage.show();
-
         } catch (IOException e) {
             e.printStackTrace();
             Alert alert = new Alert(AlertType.ERROR);
@@ -162,9 +158,5 @@ public class MainController {
             if (!mapped.contains(file.getAbsolutePath()))
                 videoData.add(new Video(file));
         }
-    }
-
-    public void setMainApp(Main mainApp) {
-        this.mainApp = mainApp;
     }
 }

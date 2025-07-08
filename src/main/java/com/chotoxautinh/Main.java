@@ -1,120 +1,133 @@
 package com.chotoxautinh;
 
 import java.io.IOException;
+
+import com.chotoxautinh.controller.SplashController;
+import javafx.application.Platform;
+import javafx.geometry.Rectangle2D;
+import javafx.scene.Parent;
+import javafx.stage.Screen;
+import javafx.stage.StageStyle;
 import org.bytedeco.javacpp.Loader;
 
-import com.chotoxautinh.controller.MainController;
 import com.chotoxautinh.controller.RootController;
 
 import javafx.application.Application;
-import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.image.Image;
-import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
-import javafx.stage.WindowEvent;
 
 public class Main extends Application {
 
-	private Stage primaryStage;
-	private BorderPane rootLayout;
+    private Stage primaryStage;
 
-	@Override
-	public void start(Stage primaryStage) throws IOException {
-		this.primaryStage = primaryStage;
-		this.primaryStage.setTitle("FFMPEG App By Dogy");
-		this.primaryStage.setResizable(false);
-		this.primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/img/dog_logo.jpg")));
+    @Override
+    public void start(Stage primaryStage) throws IOException {
+        this.primaryStage = primaryStage;
+        showSplashScreen();
+    }
 
-		initRootLayout();
-		showMainLayout();
-	}
+    private void showSplashScreen() throws IOException {
+        // Load the splash screen
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/SplashScreen.fxml"));
+        Parent splashRoot = loader.load();
+        SplashController splashController = loader.getController();
 
-	/**
-	 * Initializes the root layout.
-	 */
-	public void initRootLayout() throws IOException {
-		try {
-			// Load FFMPEG binary
-			Loader.load(org.bytedeco.ffmpeg.ffmpeg.class);
+        // Create a new stage for splash screen
+        Stage splashStage = new Stage(StageStyle.UNDECORATED);
+        Scene splashScene = new Scene(splashRoot);
+        splashStage.setScene(splashScene);
+        splashStage.show();
 
-			// Load root layout from fxml file.
-			FXMLLoader loader = new FXMLLoader();
-			loader.setLocation(getClass().getResource("/view/RootLayout.fxml"));
-			rootLayout = (BorderPane) loader.load();
+        // Create a separate thread for loading tasks
+        Thread loadingThread = new Thread(() -> {
+            // Simulate loading tasks
+            for (int i = 0; i <= 10; i++) {
+                final int progress = i;
+                Platform.runLater(() ->
+                        splashController.updateProgress(progress / 10.0, "Loading... " + progress * 10 + "%")
+                );
+                try {
+                    Thread.sleep(50); // Simulate some work being done
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
 
-			RootController controller = loader.getController();
-			controller.setMainApp(this);
 
-			// Show the scene containing the root layout.
-			Scene scene = new Scene(rootLayout);
-			scene.getStylesheets().add(getClass().getResource("/style/application.css").toExternalForm());
-			primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
-				@Override
-				public void handle(WindowEvent event) {
-					System.exit(0);
-				}
-			});
-			primaryStage.setScene(scene);
-			primaryStage.show();
-		} catch (IOException e) {
-			Alert alert = new Alert(AlertType.ERROR);
-			alert.setTitle("Error");
-			alert.setHeaderText(null);
-			alert.setContentText(e.getMessage());
+            // Load FFMPEG binary
+            Loader.load(org.bytedeco.ffmpeg.ffmpeg.class);
 
-			alert.showAndWait();
+            // Loading complete, show main window
+            Platform.runLater(() -> {
+                try {
+                    initRootLayout();
+//					showMainLayout();
 
-			throw e;
-		}
-	}
+                    splashStage.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+        });
+        loadingThread.start();
+    }
 
-	/**
-	 * Shows the person overview inside the root layout.
-	 */
-	public void showMainLayout() throws IOException {
-		try {
-			// Load person overview.
-			FXMLLoader loader = new FXMLLoader();
-			loader.setLocation(getClass().getResource("/view/MainLayout.fxml"));
-			AnchorPane mainLayout = (AnchorPane) loader.load();
 
-			// Give the controller access to the main app.
-			MainController controller = loader.getController();
-			controller.setMainApp(this);
+    /**
+     * Initializes the root layout.
+     */
+    public void initRootLayout() throws IOException {
+        try {
+            // Load root layout from fxml file.
+            FXMLLoader loader = new FXMLLoader();
+            loader.setLocation(getClass().getResource("/view/RootLayout.fxml"));
+            BorderPane rootLayout = loader.load();
 
-			// Set person overview into the center of root layout.
-			rootLayout.setCenter(mainLayout);
-		} catch (IOException e) {
-			Alert alert = new Alert(AlertType.ERROR);
-			alert.setTitle("Error");
-			alert.setHeaderText(null);
-			alert.setContentText(e.getMessage());
+            RootController controller = loader.getController();
+            controller.setStage(primaryStage);
 
-			alert.showAndWait();
+            // Show the scene containing the root layout.
+            Scene scene = new Scene(rootLayout, 1000, 600);
+            scene.getStylesheets().add(getClass().getResource("/style/application.css").toExternalForm());
+            primaryStage.setOnCloseRequest(event -> System.exit(0));
 
-			throw e;
-		}
-	}
+            // Get the visual bounds of the primary screen (excludes taskbar)
+            Rectangle2D visualBounds = Screen.getPrimary().getVisualBounds();
 
-	/**
-	 * Returns the main stage.
-	 * 
-	 * @return
-	 */
-	public Stage getPrimaryStage() {
-		return primaryStage;
-	}
+            // Set the stage size and position
+            primaryStage.setX(visualBounds.getMinX());
+            primaryStage.setY(visualBounds.getMinY());
+            primaryStage.setWidth(visualBounds.getWidth());
+            primaryStage.setHeight(visualBounds.getHeight());
 
-	public static void main(String[] args) {
-		try {
-			launch(args);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+            primaryStage.setTitle("FFMPEG App By Dogy");
+            primaryStage.setResizable(false);
+            primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/img/dog_logo.jpg")));
+
+            primaryStage.setScene(scene);
+            primaryStage.show();
+        } catch (IOException e) {
+            Alert alert = new Alert(AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText(null);
+            alert.setContentText(e.getMessage());
+
+            alert.showAndWait();
+
+            throw e;
+        }
+    }
+
+    public static void main(String[] args) {
+        try {
+            launch(args);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox alignment="CENTER" style="-fx-background-color: white;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.chotoxautinh.controller.SplashController">
+   <AnchorPane prefHeight="200.0" prefWidth="200.0">
+      <children>
+          <ImageView fitHeight="600" fitWidth="600" preserveRatio="true">
+              <image>
+                  <Image url="@../img/dog_logo.jpg" />
+              </image>
+          </ImageView>
+          <Label fx:id="loadingLabel" text="Loading..." AnchorPane.bottomAnchor="5.0" AnchorPane.leftAnchor="5.0">
+            <opaqueInsets>
+               <Insets />
+            </opaqueInsets>
+         </Label>
+      </children>
+   </AnchorPane>
+    <ProgressBar fx:id="loadingProgress" prefWidth="600" />
+</VBox>

@@ -11,7 +11,7 @@ mvn javafx:run
 ### Build
 Build the main jar file and all other neccessary libs:
 ```
-mvn clean package
+mvn clean package -Dapp.title="FFMPEG App By Dogy" -Dapp.version="1.0.0"
 ```
 
 You need to create JRE runtime image which would be embed in the final package. By default, jpackage already do that job, but it does not contain some required runtime libraries to run JavaFX program.
