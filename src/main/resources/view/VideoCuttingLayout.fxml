@@ -6,20 +6,16 @@
 <AnchorPane prefHeight="400.0" prefWidth="600.0" style="-fx-background-color: #e9ebee;"
             xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.chotoxautinh.controller.VideoCuttingLayout">
-    <children>
-        <Label alignment="CENTER" text="Coming Soon..." textAlignment="CENTER" AnchorPane.bottomAnchor="0.0"
-               AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
+    <Label alignment="CENTER" text="Coming Soon..." textAlignment="CENTER" AnchorPane.bottomAnchor="0.0"
+           AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
 
-        <!-- Overlay Section -->
-        <AnchorPane fx:id="overlay" prefHeight="600.0" prefWidth="800.0"
-                    style="-fx-background-color: rgba(0, 0, 0, 1);" AnchorPane.bottomAnchor="0.0"
-                    AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-            <children>
-                <Label text="This feature is currently not available. Please recheck Python3 validity in your system."
-                       textFill="WHITE" alignment="CENTER" textAlignment="CENTER" wrapText="true" maxWidth="400.0"
-                       AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
-                       AnchorPane.topAnchor="0.0"/>
-            </children>
-        </AnchorPane>
-    </children>
+    <!-- Overlay Section -->
+    <AnchorPane fx:id="overlay" prefHeight="600.0" prefWidth="800.0"
+                style="-fx-background-color: rgba(0, 0, 0, 1);" AnchorPane.bottomAnchor="0.0"
+                AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <Label text="This feature is currently not available. Please recheck Python3 validity in your system."
+               textFill="WHITE" alignment="CENTER" textAlignment="CENTER" wrapText="true" maxWidth="400.0"
+               AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
+               AnchorPane.topAnchor="0.0"/>
+    </AnchorPane>
 </AnchorPane>

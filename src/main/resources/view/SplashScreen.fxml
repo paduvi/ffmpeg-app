@@ -9,19 +9,15 @@
 <?import javafx.scene.layout.VBox?>
 
 <VBox alignment="CENTER" style="-fx-background-color: white;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.chotoxautinh.controller.SplashController">
-   <AnchorPane prefHeight="200.0" prefWidth="200.0">
-      <children>
-          <ImageView fitHeight="600" fitWidth="600" preserveRatio="true">
-              <image>
-                  <Image url="@../img/dog_logo.jpg" />
-              </image>
-          </ImageView>
-          <Label fx:id="loadingLabel" text="Loading..." AnchorPane.bottomAnchor="5.0" AnchorPane.leftAnchor="5.0">
-            <opaqueInsets>
-               <Insets />
-            </opaqueInsets>
-         </Label>
-      </children>
-   </AnchorPane>
+    <AnchorPane prefHeight="200.0" prefWidth="200.0">
+        <ImageView fitHeight="600" fitWidth="600" preserveRatio="true">
+            <Image url="@../img/dog_logo.jpg"/>
+        </ImageView>
+        <Label fx:id="loadingLabel" text="Loading..." AnchorPane.bottomAnchor="5.0" AnchorPane.leftAnchor="5.0">
+          <opaqueInsets>
+              <Insets/>
+          </opaqueInsets>
+        </Label>
+    </AnchorPane>
     <ProgressBar fx:id="loadingProgress" prefWidth="600" />
 </VBox>

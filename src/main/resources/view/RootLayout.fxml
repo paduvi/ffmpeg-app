@@ -17,43 +17,31 @@
 <BorderPane xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.chotoxautinh.controller.RootController">
     <top>
         <MenuBar style="-fx-padding: 0;" BorderPane.alignment="CENTER">
-            <menus>
-                <Menu mnemonicParsing="false" text="File">
-                    <items>
-                        <MenuItem mnemonicParsing="false" onAction="#handleSettingAction" text="Settings">
-                            <graphic>
-                                <ImageView fitHeight="24.0" fitWidth="24.0" pickOnBounds="true" preserveRatio="true">
-                                    <image>
-                                        <Image url="@../img/settings-icon.png" />
-                                    </image>
-                                </ImageView>
-                            </graphic>
-                        </MenuItem>
-                        <MenuItem mnemonicParsing="false" onAction="#handleExitAction" text="Exit">
-                            <graphic>
-                                <ImageView fitHeight="24.0" fitWidth="24.0" pickOnBounds="true" preserveRatio="true">
-                                    <image>
-                                        <Image url="@../img/exit-icon.png" />
-                                    </image>
-                                </ImageView>
-                            </graphic>
-                        </MenuItem>
-                    </items>
-                </Menu>
-                <Menu mnemonicParsing="false" text="Help">
-                    <items>
-                        <MenuItem mnemonicParsing="false" onAction="#handleAboutAction" text="About">
-                            <graphic>
-                                <ImageView fitHeight="24.0" fitWidth="24.0" pickOnBounds="true" preserveRatio="true">
-                                    <image>
-                                        <Image url="@../img/about-icon.png" />
-                                    </image>
-                                </ImageView>
-                            </graphic>
-                        </MenuItem>
-                    </items>
-                </Menu>
-            </menus>
+            <Menu mnemonicParsing="false" text="File">
+                <MenuItem mnemonicParsing="false" onAction="#handleSettingAction" text="Settings">
+                    <graphic>
+                        <ImageView fitHeight="24.0" fitWidth="24.0" pickOnBounds="true" preserveRatio="true">
+                            <Image url="@../img/settings-icon.png"/>
+                        </ImageView>
+                    </graphic>
+                </MenuItem>
+                <MenuItem mnemonicParsing="false" onAction="#handleExitAction" text="Exit">
+                    <graphic>
+                        <ImageView fitHeight="24.0" fitWidth="24.0" pickOnBounds="true" preserveRatio="true">
+                            <Image url="@../img/exit-icon.png"/>
+                        </ImageView>
+                    </graphic>
+                </MenuItem>
+            </Menu>
+            <Menu mnemonicParsing="false" text="Help">
+                <MenuItem mnemonicParsing="false" onAction="#handleAboutAction" text="About">
+                    <graphic>
+                        <ImageView fitHeight="24.0" fitWidth="24.0" pickOnBounds="true" preserveRatio="true">
+                            <Image url="@../img/about-icon.png"/>
+                        </ImageView>
+                    </graphic>
+                </MenuItem>
+            </Menu>
         </MenuBar>
     </top>
     <center>
@@ -62,34 +50,31 @@
     </center>
     <left>
         <VBox prefHeight="200.0" prefWidth="100.0" BorderPane.alignment="CENTER">
-            <children>
-                <AnchorPane prefHeight="50.0" prefWidth="99.0">
-                    <children>
-                        <Label fx:id="appTitle" style="-fx-font-weight: 600" text="App Name" AnchorPane.leftAnchor="55.0" AnchorPane.topAnchor="0.0">
-                            <font>
-                                <Font size="16.0" />
-                            </font>
-                        </Label>
-                        <Label fx:id="appVersion" text="App Version" AnchorPane.leftAnchor="55.0" AnchorPane.topAnchor="25.0" />
-                        <ImageView fitHeight="45.0" fitWidth="45.0" pickOnBounds="true" preserveRatio="true" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0">
-                            <image>
-                                <Image url="@../img/dog_logo.jpg" />
-                            </image>
-                        </ImageView>
-                    </children>
-               <VBox.margin>
-                  <Insets />
-               </VBox.margin>
-               <padding>
-                  <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-               </padding>
-                </AnchorPane>
-                <VBox fx:id="sideMenu" spacing="10" style="-fx-padding: 10; -fx-background-color: #f4f4f4;">
-                    <fx:define>
-                        <ToggleGroup fx:id="menuGroup" />
-                    </fx:define>
-                </VBox>
-            </children>
+            <AnchorPane prefHeight="50.0" prefWidth="99.0">
+                <VBox.margin>
+                    <Insets/>
+                </VBox.margin>
+                <padding>
+                    <Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/>
+                </padding>
+                <Label fx:id="appTitle" style="-fx-font-weight: 600" text="App Name" AnchorPane.leftAnchor="55.0"
+                       AnchorPane.topAnchor="0.0">
+                    <font>
+                        <Font size="16.0"/>
+                    </font>
+                </Label>
+                <Label fx:id="appVersion" text="App Version" AnchorPane.leftAnchor="55.0"
+                       AnchorPane.topAnchor="25.0"/>
+                <ImageView fitHeight="45.0" fitWidth="45.0" pickOnBounds="true" preserveRatio="true"
+                           AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0">
+                    <Image url="@../img/dog_logo.jpg"/>
+                </ImageView>
+            </AnchorPane>
+            <VBox fx:id="sideMenu" spacing="10" style="-fx-padding: 10; -fx-background-color: #f4f4f4;">
+                <fx:define>
+                    <ToggleGroup fx:id="menuGroup"/>
+                </fx:define>
+            </VBox>
         </VBox>
     </left>
 

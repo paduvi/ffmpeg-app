@@ -197,7 +197,7 @@ public class ProgressController extends AbstractController {
             alert.setContentText("Do you really want to cancel it?");
 
             Optional<ButtonType> result = alert.showAndWait();
-            if (result.get() == ButtonType.OK) {
+            if (result.isPresent() && result.get() == ButtonType.OK) {
                 handleCancel();
             }
         } else {
@@ -241,7 +241,7 @@ public class ProgressController extends AbstractController {
                 alert.setContentText("Do you want to cancel and exit?");
 
                 Optional<ButtonType> result = alert.showAndWait();
-                if (result.get() == ButtonType.OK) {
+                if (result.isPresent() && result.get() == ButtonType.OK) {
                     handleCancel();
                 } else {
                     event.consume();

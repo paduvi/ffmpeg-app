@@ -52,7 +52,7 @@ public class RootController extends AbstractController implements Initializable 
         setupSideMenu();
         // Select the first menu item by default
         if (!sideMenu.getChildren().isEmpty()) {
-            ToggleButton firstButton = (ToggleButton) sideMenu.getChildren().get(0);
+            ToggleButton firstButton = (ToggleButton) sideMenu.getChildren().getFirst();
             firstButton.setSelected(true);
             switchToSection(MenuSection.VIDEO_COMPRESSION);
         }
