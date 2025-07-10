@@ -101,7 +101,6 @@ public class Utility {
     }
 
     public static String getMimeType(String absolutePath) throws IOException {
-        String mimeType = Files.probeContentType(Path.of(absolutePath));
-        return mimeType;
+        return Files.probeContentType(Path.of(absolutePath));
     }
 }

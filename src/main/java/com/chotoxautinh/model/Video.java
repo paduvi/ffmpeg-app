@@ -11,12 +11,12 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
 public class Video {
-    private StringProperty name;
-    private StringProperty path;
-    private StringProperty duration;
-    private StringProperty size;
+    private final StringProperty name;
+    private final StringProperty path;
+    private final StringProperty duration;
+    private final StringProperty size;
     private StringProperty type;
-    private BooleanProperty selected;
+    private final BooleanProperty selected;
 
     public Video(File file) {
         Path p = file.toPath();
