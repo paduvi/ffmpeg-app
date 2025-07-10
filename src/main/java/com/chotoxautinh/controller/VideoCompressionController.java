@@ -8,16 +8,15 @@ import java.util.List;
 
 import com.chotoxautinh.model.Video;
 
+import com.chotoxautinh.util.Utility;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
+import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.Label;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
@@ -33,6 +32,8 @@ public class VideoCompressionController extends AbstractController {
     @FXML
     private TableColumn<Video, String> nameColumn;
     @FXML
+    private TableColumn<Video, String> durationColumn;
+    @FXML
     private TableColumn<Video, String> sizeColumn;
     @FXML
     private TableColumn<Video, String> typeColumn;
@@ -45,6 +46,7 @@ public class VideoCompressionController extends AbstractController {
         selectColumn.setCellFactory(cell -> new CheckBoxTableCell<>());
         nameColumn.setCellValueFactory(cellData -> cellData.getValue().nameProperty());
         sizeColumn.setCellValueFactory(cellData -> cellData.getValue().sizeProperty());
+        durationColumn.setCellValueFactory(cellData -> cellData.getValue().durationProperty());
         typeColumn.setCellValueFactory(cellData -> cellData.getValue().typeProperty());
 
         tableView.setPlaceholder(new Label("Your Video Bin is empty"));
@@ -52,7 +54,10 @@ public class VideoCompressionController extends AbstractController {
     }
 
     @FXML
-    private void handleOpen() {
+    private void handleOpen(ActionEvent event) {
+        Button button = (Button) event.getSource();
+        button.setDisable(true);
+
         FileChooser fileChooser = new FileChooser();
 
         // Set extension filter
@@ -90,6 +95,7 @@ public class VideoCompressionController extends AbstractController {
         if (files != null && !files.isEmpty()) {
             loadVideoDataFromFiles(files);
         }
+        button.setDisable(false);
     }
 
     @FXML
@@ -141,13 +147,8 @@ public class VideoCompressionController extends AbstractController {
 
             dialogStage.show();
         } catch (IOException e) {
+            Utility.alertError(e);
             e.printStackTrace();
-            Alert alert = new Alert(AlertType.ERROR);
-            alert.setTitle("Error");
-            alert.setHeaderText(null);
-            alert.setContentText(e.getMessage());
-
-            alert.showAndWait();
         }
     }
 

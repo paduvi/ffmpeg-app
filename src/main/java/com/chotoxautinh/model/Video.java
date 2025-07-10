@@ -2,121 +2,105 @@ package com.chotoxautinh.model;
 
 import java.io.File;
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
+import com.chotoxautinh.util.Utility;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
 public class Video {
-	private StringProperty name;
-	private StringProperty path;
-	private StringProperty size;
-	private StringProperty type;
-	private BooleanProperty selected;
+    private StringProperty name;
+    private StringProperty path;
+    private StringProperty duration;
+    private StringProperty size;
+    private StringProperty type;
+    private BooleanProperty selected;
 
-	public Video(File file) {
-		Path p = file.toPath();
-		this.name = new SimpleStringProperty(p.getFileName().toString().replaceFirst("[.][^.]+$", ""));
-		this.path = new SimpleStringProperty(file.getAbsolutePath());
-		try {
-			this.type = new SimpleStringProperty(getMimeType(file.getAbsolutePath()));
-		} catch (IOException e) {
-			this.type = new SimpleStringProperty("Undetermined");
-		}
-		this.size = new SimpleStringProperty(defineSize(file.length()));
-		this.selected = new SimpleBooleanProperty(false);
-	}
+    public Video(File file) {
+        Path p = file.toPath();
+        this.name = new SimpleStringProperty(p.getFileName().toString().replaceFirst("[.][^.]+$", ""));
+        this.path = new SimpleStringProperty(file.getAbsolutePath());
+        try {
+            this.type = new SimpleStringProperty(Utility.getMimeType(file.getAbsolutePath()));
+        } catch (IOException e) {
+            this.type = new SimpleStringProperty("Undetermined");
+        }
+        this.size = new SimpleStringProperty(Utility.defineSize(file.length()));
+        this.duration = new SimpleStringProperty(Utility.getVideoDuration(file));
+        this.selected = new SimpleBooleanProperty(false);
+    }
 
-	private String defineSize(double size) {
-		String unit = "Byte";
-		if (size > 1024) {
-			size /= 1024;
-			unit = "KB";
-		}
-		if (size > 1024) {
-			size /= 1024;
-			unit = "MB";
-		}
-		if (size > 1024) {
-			size /= 1024;
-			unit = "GB";
-		}
-		if (size > 1024) {
-			size /= 1024;
-			unit = "TB";
-		}
-		BigDecimal bd = new BigDecimal(size);
-		bd = bd.setScale(2, RoundingMode.HALF_UP);
-		return bd.doubleValue() + unit;
-	}
+    public String getName() {
+        return name.get();
+    }
 
-	public static String getMimeType(String absolutePath) throws IOException {
-		String mimeType = Files.probeContentType(Path.of(absolutePath));
-		return mimeType;
-	}
+    public void setName(String name) {
+        this.name.set(name);
+    }
 
-	public String getName() {
-		return name.get();
-	}
+    public StringProperty nameProperty() {
+        return name;
+    }
 
-	public void setName(String name) {
-		this.name.set(name);
-	}
+    public String getType() {
+        return type.get();
+    }
 
-	public StringProperty nameProperty() {
-		return name;
-	}
+    public void setType(String type) {
+        this.type.set(type);
+    }
 
-	public String getType() {
-		return type.get();
-	}
+    public StringProperty typeProperty() {
+        return type;
+    }
 
-	public void setType(String type) {
-		this.type.set(type);
-	}
+    public String getPath() {
+        return path.get();
+    }
 
-	public StringProperty typeProperty() {
-		return type;
-	}
+    public void setPath(String path) {
+        this.path.set(path);
+    }
 
-	public String getPath() {
-		return path.get();
-	}
+    public StringProperty pathProperty() {
+        return path;
+    }
 
-	public void setPath(String path) {
-		this.path.set(path);
-	}
+    public String getSize() {
+        return size.get();
+    }
 
-	public StringProperty pathProperty() {
-		return path;
-	}
+    public void setSize(String size) {
+        this.size.set(size);
+    }
 
-	public String getSize() {
-		return size.get();
-	}
+    public StringProperty sizeProperty() {
+        return size;
+    }
 
-	public void setSize(String size) {
-		this.size.set(size);
-	}
+    public boolean getSelected() {
+        return selected.get();
+    }
 
-	public StringProperty sizeProperty() {
-		return size;
-	}
+    public void setSelected(boolean selected) {
+        this.selected.set(selected);
+    }
 
-	public boolean getSelected() {
-		return selected.get();
-	}
+    public BooleanProperty selectedProperty() {
+        return selected;
+    }
 
-	public void setSelected(boolean selected) {
-		this.selected.set(selected);
-	}
+    public String getDuration() {
+        return duration.get();
+    }
 
-	public BooleanProperty selectedProperty() {
-		return selected;
-	}
+    public StringProperty durationProperty() {
+        return duration;
+    }
+
+    public void setDuration(String duration) {
+        this.duration.set(duration);
+    }
 }

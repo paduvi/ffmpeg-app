@@ -1,6 +1,7 @@
 package com.chotoxautinh.controller;
 
 import com.chotoxautinh.model.MenuSection;
+import com.chotoxautinh.util.Utility;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -98,7 +99,7 @@ public class RootController extends AbstractController implements Initializable 
             Node content = layoutCache.computeIfAbsent(section, this::loadLayout);
             contentArea.getChildren().add(content);
         } catch (Exception e) {
-            showError("Error loading layout: " + section.getLabel());
+            Utility.alertError("Error loading layout: " + section.getLabel());
             e.printStackTrace();
         }
     }
@@ -119,23 +120,14 @@ public class RootController extends AbstractController implements Initializable 
 
     }
 
-    private void showError(String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Error");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
-    }
-
     @FXML
     private void handleAboutAction() {
         Alert alert = new Alert(AlertType.INFORMATION);
         alert.setTitle("© 2016 - Dogy. All rights reserved.");
         alert.setHeaderText("Contact me at:");
         String builder = """
-                • Linkedin: vietphanduc
-                • Phone: 0985797649
-                • Email: viet3695@gmail.com
+                • Linkedin: thanhhao411
+                • Email: admin@dogy.io
                 """;
         alert.setContentText(builder);
 
@@ -163,7 +155,7 @@ public class RootController extends AbstractController implements Initializable 
 
             dialogStage.show();
         } catch (IOException e) {
-            showError("Error handleSettingAction: " + e.getMessage());
+            Utility.alertError("Error handleSettingAction: " + e.getMessage());
             e.printStackTrace();
         }
     }

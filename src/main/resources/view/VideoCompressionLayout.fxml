@@ -14,11 +14,13 @@
       <columns>
          <TableColumn fx:id="selectColumn" prefWidth="50.0" resizable="false" sortable="false"
                       styleClass="selectColumn"/>
-         <TableColumn fx:id="nameColumn" editable="false" prefWidth="455.0" resizable="false" sortable="false"
+         <TableColumn fx:id="nameColumn" editable="false" prefWidth="450.0" resizable="false" sortable="false"
                       text="Name"/>
-         <TableColumn fx:id="sizeColumn" editable="false" prefWidth="120.0" resizable="false" sortable="false"
+         <TableColumn fx:id="durationColumn" editable="false" prefWidth="150.0" resizable="false" sortable="false"
+                      text="Duration"/>
+         <TableColumn fx:id="sizeColumn" editable="false" prefWidth="150.0" resizable="false" sortable="false"
                       text="Size"/>
-         <TableColumn fx:id="typeColumn" editable="false" prefWidth="125.0" resizable="false" sortable="false"
+         <TableColumn fx:id="typeColumn" editable="false" prefWidth="150.0" resizable="false" sortable="false"
                       text="Type"/>
       </columns>
    </TableView>

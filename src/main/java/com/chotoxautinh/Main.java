@@ -3,6 +3,7 @@ package com.chotoxautinh;
 import java.io.IOException;
 
 import com.chotoxautinh.controller.SplashController;
+import com.chotoxautinh.util.Utility;
 import javafx.application.Platform;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Parent;
@@ -15,8 +16,6 @@ import com.chotoxautinh.controller.RootController;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
@@ -112,12 +111,7 @@ public class Main extends Application {
             primaryStage.setScene(scene);
             primaryStage.show();
         } catch (IOException e) {
-            Alert alert = new Alert(AlertType.ERROR);
-            alert.setTitle("Error");
-            alert.setHeaderText(null);
-            alert.setContentText(e.getMessage());
-
-            alert.showAndWait();
+            Utility.alertError(e);
 
             throw e;
         }
