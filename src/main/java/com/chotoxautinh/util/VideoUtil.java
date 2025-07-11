@@ -1,9 +1,5 @@
 package com.chotoxautinh.util;
 
-import javafx.animation.PauseTransition;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.util.Duration;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.global.avformat;
@@ -15,33 +11,11 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-public class Utility {
-
-    public static void alertError(Throwable e) {
-        alertError(e.getMessage());
-    }
-
-    public static void alertError(String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Error");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-
-        alert.showAndWait();
-    }
-
-    public static void handleThrottle(Button button, Duration duration) {
-        // Disable the button
-        button.setDisable(true);
-
-        // Create a PauseTransition for 2 seconds
-        PauseTransition pause = new PauseTransition(duration);
-
-        // Enable the button after the delay
-        pause.setOnFinished(e -> button.setDisable(false));
-        pause.play();
-    }
+public class VideoUtil {
+    private static final Logger LOGGER = Logger.getLogger(VideoUtil.class.getName());
 
     public static String defineSize(double size) {
         String unit = "Byte";
@@ -92,7 +66,7 @@ public class Utility {
             return String.format("%02d:%02d:%02d", hours, minutes, seconds);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Error getting video duration: " + videoFile.getAbsolutePath(), e);
             return "Unknown";
         } finally {
             // Free resources
@@ -103,4 +77,5 @@ public class Utility {
     public static String getMimeType(String absolutePath) throws IOException {
         return Files.probeContentType(Path.of(absolutePath));
     }
+
 }

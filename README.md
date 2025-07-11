@@ -1,28 +1,35 @@
 ### Requirement:
-- This project is using Java 21 and Maven.
-- Download the JavaFX SDK and JavaFX jmods in [here](https://gluonhq.com/products/javafx/) 
+- This project is built using **Java 21** and **Maven**.
+- Download the **JavaFX SDK** and **JavaFX jmods** from [this link](https://gluonhq.com/products/javafx/).
 
-### Getting started:
-You can test the project by using command:
+### Getting Started:
+You can test the project by running the following command:
 ```
 mvn javafx:run
 ```
 
-### Build
-Build the main jar file and all other neccessary libs:
+### Build:
+Build the main JAR file and all other necessary dependencies:
 ```
-mvn clean package -Dapp.title="FFMPEG App By Dogy" -Dapp.version="1.0.0"
+mvn clean package
 ```
 
-You need to create JRE runtime image which would be embed in the final package. By default, jpackage already do that job, but it does not contain some required runtime libraries to run JavaFX program.
-We can create a custom runtime image by ourselves then build the package after that.
+You need to create a **JRE runtime image**, which will be embedded into the final package. By default, `jpackage` creates the runtime image, but it does not include certain runtime libraries required to run JavaFX programs.  
+We can manually create a custom runtime image and build the package afterward.
 
-#### MacOSX
+#### MacOS
 
 ```
+# Set the path to JavaFX jmods
 export PATH_TO_FX_MODS=path/to/javafx-jmods
-jlink --module-path $PATH_TO_FX_MODS --add-modules javafx.controls,javafx.fxml --output jre
 
+# Create a custom runtime image
+jlink \
+  --module-path "$JAVA_HOME/jmods:$PATH_TO_FX_MODS" \
+  --add-modules java.naming,java.sql,java.logging,javafx.controls,javafx.fxml \
+  --output jre
+  
+# Build and package for different MacOSX types
 for type in "app-image" "dmg" "pkg"
 jpackage --type $type \
   --name DogyMpegApp \
@@ -59,9 +66,28 @@ An .msi file provides a standard Windows installation and uninstallation experie
 To use `exe` and `msi` options, you need to install [WiX Toolset](https://github.com/wixtoolset/wix3/releases) on your Windows system. jpackage leverages WiX to generate the package.
 
 ```
-set PATH_TO_FX_MODS=path/to/javafx-jmods
-jlink --module-path %PATH_TO_FX_MODS% --add-modules javafx.controls,javafx.fxml --output jre
+# Set the path to JavaFX jmods
+$env:PATH_TO_FX_MODS="path/to/javafx-jmods"
 
-set "TYPES=app-image exe msi"
-for %T in (%TYPES%) do (jpackage --type %T --input target --name DogyMpegApp --main-jar "DogyMPEGApp.jar" --main-class "com.chotoxautinh.Main" --java-options "-Xmx2048m" --runtime-image jre --icon "src\main\resources\icon.ico" --app-version "1.0.0" --vendor "Dogy Inc." --copyright "Copyright © 2016-25 Dogy Inc." --dest dist/jpackage/win)
+# Create a custom runtime image
+jlink --module-path "$env:JAVA_HOME\jmods;$env:PATH_TO_FX_MODS" `
+      --add-modules java.naming,java.sql,java.logging,javafx.controls,javafx.fxml `
+      --output jre
+      
+# Build and package for different Windows types
+$TYPES = @("app-image", "exe", "msi")
+foreach ($T in $TYPES) {
+    jpackage --type $T `
+        --input target `
+        --name DogyMpegApp `
+        --main-jar "DogyMPEGApp.jar" `
+        --main-class "com.chotoxautinh.Main" `
+        --java-options "-Xmx2048m" `
+        --runtime-image jre `
+        --icon "src\main\resources\icon.ico" `
+        --app-version "1.0.0" `
+        --vendor "Dogy Inc." `
+        --copyright "Copyright © 2016-25 Dogy Inc." `
+        --dest dist/jpackage/win
+}
 ```

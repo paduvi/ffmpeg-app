@@ -1,5 +1,7 @@
 package com.chotoxautinh.model;
 
+import java.io.File;
+
 public class Constants {
     public static final String AUDIO_CODEC_KEY = "AUDIO_CODEC";
     public static final AudioCodec DEFAULT_AUDIO_CODEC_VALUE = AudioCodec.AAC;
@@ -12,4 +14,10 @@ public class Constants {
 
     public static final String CRF_KEY = "CRF";
     public static final int DEFAULT_CRF_VALUE = 23;
+
+    public static final String DATA_PATH = System.getProperty("user.home") + File.separator + ".dogy-ffmpeg-app";
+    public static final String DATABASE_URL = "jdbc:h2:" + DATA_PATH + File.separator + "db";
+    public static final String DATABASE_USER = "sa";
+    public static final String DATABASE_PASSWORD = "";
+    public static final int DATABASE_CONNECTION_POOL_SIZE = 10;
 }

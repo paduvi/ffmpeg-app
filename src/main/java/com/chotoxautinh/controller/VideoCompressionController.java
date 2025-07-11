@@ -1,14 +1,7 @@
 package com.chotoxautinh.controller;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-
 import com.chotoxautinh.model.Video;
-
-import com.chotoxautinh.util.Utility;
+import com.chotoxautinh.util.AppUtil;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -23,7 +16,17 @@ import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 public class VideoCompressionController extends AbstractController {
+    private static final Logger LOGGER = Logger.getLogger(VideoCompressionController.class.getName());
 
     @FXML
     private TableView<Video> tableView;
@@ -136,7 +139,7 @@ public class VideoCompressionController extends AbstractController {
             dialogStage.initModality(Modality.APPLICATION_MODAL);
             dialogStage.initOwner(getStage());
             Scene scene = new Scene(progress);
-            scene.getStylesheets().add(getClass().getResource("/style/application.css").toExternalForm());
+            scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/style/application.css")).toExternalForm());
             dialogStage.setScene(scene);
 
             // Set the persons into the controller.
@@ -147,8 +150,8 @@ public class VideoCompressionController extends AbstractController {
 
             dialogStage.show();
         } catch (IOException e) {
-            Utility.alertError(e);
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Error handleConvert: " + e.getMessage(), e);
+            AppUtil.alertError(e);
         }
     }
 

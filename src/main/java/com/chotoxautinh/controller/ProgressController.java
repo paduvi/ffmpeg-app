@@ -1,6 +1,20 @@
 package com.chotoxautinh.controller;
 
-import java.awt.Desktop;
+import com.chotoxautinh.Main;
+import com.chotoxautinh.model.AudioCodec;
+import com.chotoxautinh.model.Constants;
+import com.chotoxautinh.model.Preset;
+import com.chotoxautinh.model.Video;
+import javafx.concurrent.Task;
+import javafx.fxml.FXML;
+import javafx.scene.control.*;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.stage.Stage;
+import org.bytedeco.javacpp.Loader;
+
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -11,30 +25,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.prefs.Preferences;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.chotoxautinh.model.AudioCodec;
-import com.chotoxautinh.model.Constants;
-import com.chotoxautinh.model.Preset;
-import org.bytedeco.javacpp.Loader;
-
-import com.chotoxautinh.Main;
-import com.chotoxautinh.model.Video;
-
-import javafx.concurrent.Task;
-import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
-import javafx.stage.Stage;
-
 public class ProgressController extends AbstractController {
-
+    private static final Logger LOGGER = Logger.getLogger(ProgressController.class.getName());
     private final Preferences prefs = Preferences.userNodeForPackage(Math.class);
 
     private static final Object LOCK = new Object();
@@ -86,7 +84,7 @@ public class ProgressController extends AbstractController {
         timeLabel.setText("0%");
         for (Video video : videos) {
             ProcessBuilder builder = new ProcessBuilder(getBinaryPath(), "-i", video.getPath(), "-c:v", "h264",
-                    "-c:a", getAudioCodec(), "-preset", getPreset(), "-crf", String.valueOf(getCrf()), folder + "/" + video.getName() + "-"
+                    "-c:a", getAudioCodec(), "-preset", getPreset(), "-crf", String.valueOf(getCrf()), folder + File.separator + video.getName() + "-"
                     + LocalDateTime.now().format(DATE_TIME_FORMATTER) + ".mp4");
             builder.redirectErrorStream(true);
 
@@ -145,6 +143,8 @@ public class ProgressController extends AbstractController {
             taskList.add(task);
             Thread thread = new Thread(task);
             task.setOnFailed(event -> {
+                LOGGER.log(Level.SEVERE, "Error running ffmpeg ", event.getSource().getException());
+
                 running = false;
                 handleCancel();
 
@@ -182,8 +182,11 @@ public class ProgressController extends AbstractController {
         Preferences prefs = Preferences.userNodeForPackage(Main.class);
         String path = prefs.get("container", null);
         if (path == null) {
-            path = System.getProperty("user.home") + "/ffmpeg-output";
-            new File(path).mkdirs();
+            path = System.getProperty("user.home") + File.separator + "ffmpeg-output";
+            boolean created = new File(path).mkdirs();
+            if (created) {
+                LOGGER.log(Level.INFO, "Created folder: " + path);
+            }
         }
         return path;
     }
@@ -220,7 +223,7 @@ public class ProgressController extends AbstractController {
         try {
             Desktop.getDesktop().open(new File(getContainFolder()));
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Error opening folder", e);
 
             Alert alert = new Alert(AlertType.ERROR);
             alert.setTitle("Error");

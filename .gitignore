@@ -6,5 +6,5 @@ target/
 dist/
 *.iml
 .idea/
-dist/
 jre/
+logs/

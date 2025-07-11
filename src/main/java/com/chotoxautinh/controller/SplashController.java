@@ -1,4 +1,3 @@
-
 package com.chotoxautinh.controller;
 
 import javafx.fxml.FXML;

@@ -1,14 +1,14 @@
 package com.chotoxautinh.model;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
-
-import com.chotoxautinh.util.Utility;
+import com.chotoxautinh.util.VideoUtil;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
 
 public class Video {
     private final StringProperty name;
@@ -23,12 +23,12 @@ public class Video {
         this.name = new SimpleStringProperty(p.getFileName().toString().replaceFirst("[.][^.]+$", ""));
         this.path = new SimpleStringProperty(file.getAbsolutePath());
         try {
-            this.type = new SimpleStringProperty(Utility.getMimeType(file.getAbsolutePath()));
+            this.type = new SimpleStringProperty(VideoUtil.getMimeType(file.getAbsolutePath()));
         } catch (IOException e) {
             this.type = new SimpleStringProperty("Undetermined");
         }
-        this.size = new SimpleStringProperty(Utility.defineSize(file.length()));
-        this.duration = new SimpleStringProperty(Utility.getVideoDuration(file));
+        this.size = new SimpleStringProperty(VideoUtil.defineSize(file.length()));
+        this.duration = new SimpleStringProperty(VideoUtil.getVideoDuration(file));
         this.selected = new SimpleBooleanProperty(false);
     }
 
@@ -64,10 +64,6 @@ public class Video {
         this.path.set(path);
     }
 
-    public StringProperty pathProperty() {
-        return path;
-    }
-
     public String getSize() {
         return size.get();
     }
@@ -92,15 +88,8 @@ public class Video {
         return selected;
     }
 
-    public String getDuration() {
-        return duration.get();
-    }
-
     public StringProperty durationProperty() {
         return duration;
     }
 
-    public void setDuration(String duration) {
-        this.duration.set(duration);
-    }
 }

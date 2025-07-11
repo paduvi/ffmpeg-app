@@ -1,8 +1,5 @@
 package com.chotoxautinh.model;
 
-import java.util.Arrays;
-import java.util.List;
-
 public enum AudioCodec {
     AAC("AAC", "aac"),
     MP3("MP3", "libmp3lame"),

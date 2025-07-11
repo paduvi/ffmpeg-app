@@ -1,7 +1,7 @@
 package com.chotoxautinh.controller;
 
 import com.chotoxautinh.model.MenuSection;
-import com.chotoxautinh.util.Utility;
+import com.chotoxautinh.util.AppUtil;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -18,12 +18,14 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.ResourceBundle;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class RootController extends AbstractController implements Initializable {
+    private static final Logger LOGGER = Logger.getLogger(RootController.class.getName());
 
     @FXML
     private VBox sideMenu;
@@ -44,11 +46,17 @@ public class RootController extends AbstractController implements Initializable 
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        String dynamicTitle = System.getProperty("app.title", "App Name");
-        String dynamicVersion = System.getProperty("app.version", "0.0.1");
+        try (InputStream input = getClass().getResourceAsStream("/application.properties")) {
+            Properties properties = new Properties();
+            properties.load(input);
+            String appName = properties.getProperty("app.name", "DefaultAppName");
+            String appVersion = properties.getProperty("app.version", "0.0.0");
 
-        this.appTitle.setText(dynamicTitle);
-        this.appVersion.setText("Version " + dynamicVersion);
+            this.appTitle.setText(appName);
+            this.appVersion.setText("Version " + appVersion);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         setupSideMenu();
         // Select the first menu item by default
@@ -99,13 +107,15 @@ public class RootController extends AbstractController implements Initializable 
             Node content = layoutCache.computeIfAbsent(section, this::loadLayout);
             contentArea.getChildren().add(content);
         } catch (Exception e) {
-            Utility.alertError("Error loading layout: " + section.getLabel());
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Error loading layout: " + section.getLabel(), e);
+            AppUtil.alertError("Error loading layout: " + section.getLabel());
         }
     }
 
     private Node loadLayout(MenuSection section) {
         try {
+            LOGGER.log(Level.INFO, "Loading layout for section: {0}", section.getLabel());
+
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/" + section.getFxmlPath()));
             Node content = loader.load();
 
@@ -146,7 +156,7 @@ public class RootController extends AbstractController implements Initializable 
             dialogStage.initModality(Modality.APPLICATION_MODAL);
             dialogStage.initOwner(getStage());
             Scene scene = new Scene(progress);
-            scene.getStylesheets().add(getClass().getResource("/style/application.css").toExternalForm());
+            scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/style/application.css")).toExternalForm());
             dialogStage.setScene(scene);
 
             // Set the persons into the controller.
@@ -155,8 +165,8 @@ public class RootController extends AbstractController implements Initializable 
 
             dialogStage.show();
         } catch (IOException e) {
-            Utility.alertError("Error handleSettingAction: " + e.getMessage());
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Error handleSettingAction: " + e.getMessage(), e);
+            AppUtil.alertError("Error handleSettingAction: " + e.getMessage());
         }
     }
 

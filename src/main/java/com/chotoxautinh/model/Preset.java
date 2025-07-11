@@ -9,7 +9,8 @@ public enum Preset {
     MEDIUM("Medium", "medium"),
     SLOW("Slow", "slow"),
     SLOWER("Slower", "slower"),
-    VERYSLOW("Very Slow", "veryslow"),;
+    VERYSLOW("Very Slow", "veryslow"),
+    ;
 
     private final String label;
     private final String value;
