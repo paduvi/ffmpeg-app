@@ -19,7 +19,9 @@ import org.bytedeco.javacpp.Loader;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -120,7 +122,15 @@ public class Main extends Application {
         primaryStage.setWidth(visualBounds.getWidth());
         primaryStage.setHeight(visualBounds.getHeight());
 
-        primaryStage.setTitle("FFMPEG App By Dogy");
+        try (InputStream input = getClass().getResourceAsStream("/application.properties")) {
+            Properties properties = new Properties();
+            properties.load(input);
+            String appName = properties.getProperty("app.name", "DefaultAppName");
+            String appVendor = properties.getProperty("app.vendor", "DefaultVendorName");
+
+            primaryStage.setTitle(appName + " By " + appVendor);
+        }
+
         primaryStage.setResizable(false);
         primaryStage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/img/dog_logo.jpg"))));
 

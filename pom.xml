@@ -4,9 +4,9 @@
 	<groupId>com.chotoxautinh</groupId>
 	<artifactId>ffmpeg-app</artifactId>
 	<version>1.0.0</version>
-	<name>DogyMPEGApp</name>
+	<name>MPEGApp</name>
 	<organization>
-		<name>Dogy</name>
+		<name>Dogy Inc.</name>
 	</organization>
 	<properties>
 	    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -17,6 +17,7 @@
     	<javafx.maven.plugin.version>0.0.8</javafx.maven.plugin.version>
         <application.name>${project.name}</application.name>
         <application.version>${project.version}</application.version>
+        <application.vendor>${project.organization.name}</application.vendor>
     </properties>
 	
 	<dependencies>
