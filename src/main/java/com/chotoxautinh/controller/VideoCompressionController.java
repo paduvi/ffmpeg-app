@@ -15,6 +15,8 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,11 +24,9 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class VideoCompressionController extends AbstractController {
-    private static final Logger LOGGER = Logger.getLogger(VideoCompressionController.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(VideoCompressionController.class);
 
     @FXML
     private TableView<Video> tableView;
@@ -150,7 +150,7 @@ public class VideoCompressionController extends AbstractController {
 
             dialogStage.show();
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Error handleConvert: " + e.getMessage(), e);
+            LOGGER.error("Error handleConvert: {}", e.getMessage(), e);
             AppUtil.alertError(e);
         }
     }

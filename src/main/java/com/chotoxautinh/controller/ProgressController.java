@@ -1,6 +1,5 @@
 package com.chotoxautinh.controller;
 
-import com.chotoxautinh.Main;
 import com.chotoxautinh.model.AudioCodec;
 import com.chotoxautinh.model.Constants;
 import com.chotoxautinh.model.Preset;
@@ -13,6 +12,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.stage.Stage;
 import org.bytedeco.javacpp.Loader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.io.BufferedReader;
@@ -25,14 +26,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.prefs.Preferences;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ProgressController extends AbstractController {
-    private static final Logger LOGGER = Logger.getLogger(ProgressController.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProgressController.class);
     private final Preferences prefs = Preferences.userNodeForPackage(Math.class);
 
     private static final Object LOCK = new Object();
@@ -143,7 +142,7 @@ public class ProgressController extends AbstractController {
             taskList.add(task);
             Thread thread = new Thread(task);
             task.setOnFailed(event -> {
-                LOGGER.log(Level.SEVERE, "Error running ffmpeg ", event.getSource().getException());
+                LOGGER.error("Error running ffmpeg: ", event.getSource().getException());
 
                 running = false;
                 handleCancel();
@@ -179,14 +178,10 @@ public class ProgressController extends AbstractController {
     }
 
     private String getContainFolder() {
-        Preferences prefs = Preferences.userNodeForPackage(Main.class);
-        String path = prefs.get("container", null);
-        if (path == null) {
-            path = System.getProperty("user.home") + File.separator + "ffmpeg-output";
-            boolean created = new File(path).mkdirs();
-            if (created) {
-                LOGGER.log(Level.INFO, "Created folder: " + path);
-            }
+        String path = System.getProperty("user.home") + File.separator + "ffmpeg-output";
+        boolean created = new File(path).mkdirs();
+        if (created) {
+            LOGGER.info("Created folder: {}", path);
         }
         return path;
     }
@@ -223,7 +218,7 @@ public class ProgressController extends AbstractController {
         try {
             Desktop.getDesktop().open(new File(getContainFolder()));
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Error opening folder", e);
+            LOGGER.error("Error opening folder", e);
 
             Alert alert = new Alert(AlertType.ERROR);
             alert.setTitle("Error");

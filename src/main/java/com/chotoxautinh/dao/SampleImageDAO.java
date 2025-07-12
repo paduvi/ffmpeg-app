@@ -3,6 +3,8 @@ package com.chotoxautinh.dao;
 import com.chotoxautinh.model.Constants;
 import com.chotoxautinh.model.SampleImage;
 import com.chotoxautinh.util.DBConnectionUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.io.File;
@@ -16,10 +18,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.logging.Logger;
 
 public class SampleImageDAO {
-    private static final Logger LOGGER = Logger.getLogger(SampleImageDAO.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(SampleImageDAO.class);
     private static final String TABLE_NAME = "sample_images"; // Centralized table name constant
     private final DataSource dataSource;
 
@@ -151,13 +152,13 @@ public class SampleImageDAO {
 
     public void deleteImageIfNotPermanent(SampleImage sampleImage) throws IOException, SQLException {
         if (sampleImage.permanent()) {
-            LOGGER.warning("Image is permanent, cannot be deleted: " + sampleImage.name());
+            LOGGER.warn("Image is permanent, cannot be deleted: {}", sampleImage.name());
             return;
         }
         Path imagePath = Paths.get(sampleImage.path());
         if (Files.exists(imagePath)) {
             Files.delete(imagePath);
-            LOGGER.info("Image deleted: " + sampleImage.name());
+            LOGGER.info("Image deleted: {}", sampleImage.name());
         }
 
         // Remove associated data from the database
@@ -167,9 +168,9 @@ public class SampleImageDAO {
             preparedStatement.setInt(1, sampleImage.id());
             int rowsDeleted = preparedStatement.executeUpdate();
             if (rowsDeleted > 0) {
-                LOGGER.info("Image data deleted from database for: " + sampleImage.name());
+                LOGGER.info("Image data deleted from database for: {}", sampleImage.name());
             } else {
-                LOGGER.warning("No record found in database for image: " + sampleImage.name());
+                LOGGER.warn("No record found in database for image: {}", sampleImage.name());
             }
         }
     }

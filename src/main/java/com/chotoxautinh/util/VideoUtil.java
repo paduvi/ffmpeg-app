@@ -4,6 +4,8 @@ import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,11 +13,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class VideoUtil {
-    private static final Logger LOGGER = Logger.getLogger(VideoUtil.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(VideoUtil.class);
 
     public static String defineSize(double size) {
         String unit = "Byte";
@@ -66,7 +66,7 @@ public class VideoUtil {
             return String.format("%02d:%02d:%02d", hours, minutes, seconds);
 
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error getting video duration: " + videoFile.getAbsolutePath(), e);
+            LOGGER.error("Error getting video duration: {}", videoFile.getAbsolutePath(), e);
             return "Unknown";
         } finally {
             // Free resources

@@ -15,6 +15,7 @@
     	<maven.compiler.target>21</maven.compiler.target>
     	<main.class>com.chotoxautinh.Main</main.class>
     	<javafx.maven.plugin.version>0.0.8</javafx.maven.plugin.version>
+        <slf4j.version>2.0.17</slf4j.version>
         <application.name>${project.name}</application.name>
         <application.version>${project.version}</application.version>
         <application.vendor>${project.organization.name}</application.vendor>
@@ -52,6 +53,20 @@
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
             <version>6.3.0</version>
+        </dependency>
+
+        <!-- SLF4J API -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+
+        <!-- SLF4J Binding (to log frameworks like Logback or java.util.logging) -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
+            <version>${slf4j.version}</version>
         </dependency>
 
     </dependencies>

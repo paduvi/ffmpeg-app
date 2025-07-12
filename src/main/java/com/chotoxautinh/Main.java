@@ -16,18 +16,18 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.bytedeco.javacpp.Loader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.logging.Level;
 import java.util.logging.LogManager;
-import java.util.logging.Logger;
 
 public class Main extends Application {
-    private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
     private Stage primaryStage;
 
     @Override
@@ -66,10 +66,10 @@ public class Main extends Application {
                 // Create data directory if not exists
                 boolean created = new File(Constants.DATA_PATH).mkdirs();
                 if (created) {
-                    LOGGER.log(Level.INFO, "Data directory created: {0}", Constants.DATA_PATH);
+                    LOGGER.info("Data directory created: {}", Constants.DATA_PATH);
                 }
             } catch (Throwable e) {
-                LOGGER.log(Level.SEVERE, "Error loading application", e);
+                LOGGER.error("Error loading application", e);
                 Platform.runLater(() -> {
                     splashStage.close();
                     AppUtil.alertError(e);
@@ -84,7 +84,7 @@ public class Main extends Application {
                     initRootLayout();
                     splashStage.close();
                 } catch (Exception e) {
-                    LOGGER.log(Level.SEVERE, "Error initRootLayout", e);
+                    LOGGER.error("Error initRootLayout", e);
                     splashStage.close();
                     AppUtil.alertError(e);
                     Platform.exit();
@@ -141,18 +141,20 @@ public class Main extends Application {
     public static void main(String[] args) {
         try {
             // Ensure the logs directory exists
-            File logDir = new File("logs");
+            File logDir = new File(Constants.DATA_PATH + File.separator + "logs");
             boolean created = logDir.mkdirs();
             // Load your logging configuration
             LogManager.getLogManager()
                     .readConfiguration(Main.class.getResourceAsStream("/logging.properties"));
             if (created) {
-                LOGGER.log(Level.INFO, "Logs directory created: {0}", logDir.getAbsolutePath());
+                LOGGER.info("Logs directory created: {}", logDir.getAbsolutePath());
+            } else {
+                LOGGER.info("Logs directory already exists: {}", logDir.getAbsolutePath());
             }
 
             launch(args);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error launching application", e);
+            LOGGER.error("Error launching application", e);
             AppUtil.alertError(e);
             Platform.exit();
         }

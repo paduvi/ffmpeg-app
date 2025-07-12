@@ -16,16 +16,16 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class RootController extends AbstractController implements Initializable {
-    private static final Logger LOGGER = Logger.getLogger(RootController.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(RootController.class);
 
     @FXML
     private VBox sideMenu;
@@ -107,14 +107,14 @@ public class RootController extends AbstractController implements Initializable 
             Node content = layoutCache.computeIfAbsent(section, this::loadLayout);
             contentArea.getChildren().add(content);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error loading layout: " + section.getLabel(), e);
+            LOGGER.error("Error loading layout: {}", section.getLabel(), e);
             AppUtil.alertError("Error loading layout: " + section.getLabel());
         }
     }
 
     private Node loadLayout(MenuSection section) {
         try {
-            LOGGER.log(Level.INFO, "Loading layout for section: {0}", section.getLabel());
+            LOGGER.info("Loading layout for section: {}", section.getLabel());
 
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/" + section.getFxmlPath()));
             Node content = loader.load();
@@ -165,7 +165,7 @@ public class RootController extends AbstractController implements Initializable 
 
             dialogStage.show();
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Error handleSettingAction: " + e.getMessage(), e);
+            LOGGER.error("Error handleSettingAction: {}", e.getMessage(), e);
             AppUtil.alertError("Error handleSettingAction: " + e.getMessage());
         }
     }
