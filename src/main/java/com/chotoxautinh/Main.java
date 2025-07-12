@@ -3,13 +3,18 @@ package com.chotoxautinh;
 import com.chotoxautinh.controller.RootController;
 import com.chotoxautinh.controller.SplashController;
 import com.chotoxautinh.model.Constants;
+import com.chotoxautinh.service.SampleImageService;
+import com.chotoxautinh.service.VideoCuttingService;
 import com.chotoxautinh.util.AppUtil;
+import com.chotoxautinh.util.PythonUtil;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Screen;
@@ -19,9 +24,11 @@ import org.bytedeco.javacpp.Loader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.logging.LogManager;
@@ -46,28 +53,58 @@ public class Main extends Application {
         Stage splashStage = new Stage(StageStyle.UNDECORATED);
         Scene splashScene = new Scene(splashRoot);
         splashStage.setScene(splashScene);
+        splashStage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/img/dog_logo.jpg"))));
         splashStage.show();
 
         // Create a separate thread for loading tasks
         Thread loadingThread = new Thread(() -> {
             try {
-                // Simulate loading tasks
-                for (int i = 0; i <= 10; i++) {
-                    final int progress = i;
-                    Platform.runLater(() ->
-                            splashController.updateProgress(progress / 10.0, "Loading... " + progress * 10 + "%")
-                    );
-                    Thread.sleep(50); // Simulate some work being done
-                }
+                // 1. Load sample images
+                Platform.runLater(() ->
+                        splashController.updateProgress(0, "Loading sample images...")
+                );
+                SampleImageService.getInstance().initialize();
 
                 // 2. Load FFMPEG binary
+                Platform.runLater(() ->
+                        splashController.updateProgress(0.25, "Loading built-in FFMPEG binary...")
+                );
                 Loader.load(org.bytedeco.ffmpeg.ffmpeg.class);
 
-                // Create data directory if not exists
-                boolean created = new File(Constants.DATA_PATH).mkdirs();
-                if (created) {
-                    LOGGER.info("Data directory created: {}", Constants.DATA_PATH);
+                // 3. Load FFMPEG binary
+                Platform.runLater(() ->
+                        splashController.updateProgress(0.5, "Checking Python binary availability...")
+                );
+                if (!PythonUtil.isPythonAvailable()) {
+                    Platform.runLater(() -> {
+                        splashStage.close();
+
+                        Alert alert = new Alert(Alert.AlertType.ERROR,
+                                "This application requires Python 3.12 or higher to be installed.\nDo you want to open the Python download page?",
+                                ButtonType.YES, ButtonType.NO);
+                        alert.setHeaderText("Python Not Found");
+
+                        alert.showAndWait().ifPresent(response -> {
+                            if (response == ButtonType.YES) {
+                                try {
+                                    Desktop.getDesktop().browse(new URI(PythonUtil.getDownloadUrlByOS()));
+                                } catch (Exception e) {
+                                    LOGGER.error("Error opening browser", e);
+                                }
+                            }
+                            Platform.exit();
+                        });
+                    });
+                    return;
+                } else {
+                    LOGGER.info("Python is already available.");
                 }
+
+                // 4. Load video cutting resources
+                Platform.runLater(() ->
+                        splashController.updateProgress(0.75, "Loading additional video cutting resources...")
+                );
+                VideoCuttingService.getInstance().initialize();
             } catch (Throwable e) {
                 LOGGER.error("Error loading application", e);
                 Platform.runLater(() -> {

@@ -12,7 +12,6 @@ public class DBConnectionUtil {
 
     static {
         // Configure HikariCP
-        System.out.println(Constants.DATABASE_URL);
         HikariConfig config = new HikariConfig();
         config.setDriverClassName(Driver.class.getName());
         config.setJdbcUrl(Constants.DATABASE_URL);

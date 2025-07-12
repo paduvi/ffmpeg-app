@@ -36,7 +36,7 @@ jpackage --type $type \
   --input target \
   --main-jar DogyMPEGApp.jar \
   --main-class com.chotoxautinh.Main \
-  --java-options -Xmx2048m \
+  --java-options "-Xmx2048m -Dbranch=main" \
   --runtime-image jre \
   --app-version 1.0.0 \
   --vendor "Dogy Inc." \
@@ -82,7 +82,7 @@ foreach ($T in $TYPES) {
         --name DogyMpegApp `
         --main-jar "DogyMPEGApp.jar" `
         --main-class "com.chotoxautinh.Main" `
-        --java-options "-Xmx2048m" `
+        --java-options "-Xmx2048m -Dbranch=main" `
         --runtime-image jre `
         --icon "src\main\resources\icon.ico" `
         --app-version "1.0.0" `
@@ -91,3 +91,6 @@ foreach ($T in $TYPES) {
         --dest dist/jpackage/win
 }
 ```
+
+**For CUDA support (if you have an NVIDIA GPU):**
+You can pass the CUDA version in the jpackage command like this: `--java-options "-Xmx2048m -Dbranch=main -Dcuda=12.8"`
