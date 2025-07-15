@@ -1,5 +1,6 @@
 package com.chotoxautinh.controller;
 
+import com.chotoxautinh.conf.AppConfig;
 import com.chotoxautinh.model.AudioCodec;
 import com.chotoxautinh.model.Constants;
 import com.chotoxautinh.model.Preset;
@@ -15,7 +16,7 @@ import java.util.prefs.Preferences;
 
 public class SettingController extends AbstractController {
 
-    private final Preferences prefs = Preferences.userNodeForPackage(Math.class);
+    private final Preferences prefs = Preferences.userNodeForPackage(AppConfig.class);
 
     @FXML
     private CheckBox useDefCkBox;

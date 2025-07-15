@@ -1,5 +1,6 @@
 package com.chotoxautinh.controller;
 
+import com.chotoxautinh.conf.AppConfig;
 import com.chotoxautinh.model.AudioCodec;
 import com.chotoxautinh.model.Constants;
 import com.chotoxautinh.model.Preset;
@@ -32,10 +33,10 @@ import java.util.regex.Pattern;
 
 public class ProgressController extends AbstractController {
     private static final Logger LOGGER = LoggerFactory.getLogger(ProgressController.class);
-    private final Preferences prefs = Preferences.userNodeForPackage(Math.class);
+    private final Preferences prefs = Preferences.userNodeForPackage(AppConfig.class);
 
     private static final Object LOCK = new Object();
-    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("ddMMyyyy-HHmmss");
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private final List<Task<Double>> taskList = new ArrayList<>();
 
     @FXML
@@ -83,8 +84,7 @@ public class ProgressController extends AbstractController {
         timeLabel.setText("0%");
         for (Video video : videos) {
             ProcessBuilder builder = new ProcessBuilder(getBinaryPath(), "-i", video.getPath(), "-c:v", "h264",
-                    "-c:a", getAudioCodec(), "-preset", getPreset(), "-crf", String.valueOf(getCrf()), folder + File.separator + video.getName() + "-"
-                    + LocalDateTime.now().format(DATE_TIME_FORMATTER) + ".mp4");
+                    "-c:a", getAudioCodec(), "-preset", getPreset(), "-crf", String.valueOf(getCrf()), folder + File.separator + video.getName() + ".mp4");
             builder.redirectErrorStream(true);
 
             Task<Double> task = new Task<>() {
@@ -178,11 +178,20 @@ public class ProgressController extends AbstractController {
     }
 
     private String getContainFolder() {
-        String path = System.getProperty("user.home") + File.separator + "ffmpeg-output";
+        String path = prefs.get("container", null);
+        if (path == null) {
+            path = System.getProperty("user.home") + File.separator + "ffmpeg-output";
+        }
+        if (!path.endsWith(File.separator)) {
+            path += File.separator;
+        }
+        path += DATE_TIME_FORMATTER.format(LocalDateTime.now());
+
         boolean created = new File(path).mkdirs();
         if (created) {
             LOGGER.info("Created folder: {}", path);
         }
+
         return path;
     }
 

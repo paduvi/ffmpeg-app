@@ -1,5 +1,6 @@
 package com.chotoxautinh.controller;
 
+import com.chotoxautinh.conf.AppConfig;
 import com.chotoxautinh.model.MenuSection;
 import com.chotoxautinh.util.AppUtil;
 import javafx.fxml.FXML;
@@ -20,9 +21,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.ResourceBundle;
 
 public class RootController extends AbstractController implements Initializable {
     private static final Logger LOGGER = LoggerFactory.getLogger(RootController.class);
@@ -46,17 +49,8 @@ public class RootController extends AbstractController implements Initializable 
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        try (InputStream input = getClass().getResourceAsStream("/application.properties")) {
-            Properties properties = new Properties();
-            properties.load(input);
-            String appName = properties.getProperty("app.name", "DefaultAppName");
-            String appVersion = properties.getProperty("app.version", "0.0.0");
-
-            this.appTitle.setText(appName);
-            this.appVersion.setText("Version " + appVersion);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        this.appTitle.setText(AppConfig.getInstance().APP_NAME);
+        this.appVersion.setText("Version " + AppConfig.getInstance().APP_VERSION);
 
         setupSideMenu();
         // Select the first menu item by default
