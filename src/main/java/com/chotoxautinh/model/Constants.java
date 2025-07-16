@@ -15,6 +15,9 @@ public class Constants {
     public static final String CRF_KEY = "CRF";
     public static final int DEFAULT_CRF_VALUE = 23;
 
+    public static final String CONTAINER_KEY = "CONTAINER";
+    public static final String DEFAULT_CONTAINER_VALUE = System.getProperty("user.home") + File.separator + "ffmpeg-output";
+
     public static final String DATA_PATH = System.getProperty("user.home") + File.separator + ".dogy-ffmpeg-app";
     public static final String DATABASE_URL = "jdbc:h2:" + DATA_PATH + File.separator + "db";
     public static final String DATABASE_USER = "sa";

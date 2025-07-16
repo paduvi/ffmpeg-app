@@ -46,13 +46,24 @@ public class VideoCompressionController extends AbstractController {
     @FXML
     private void initialize() {
         selectColumn.setCellValueFactory(cellData -> cellData.getValue().selectedProperty());
-        selectColumn.setCellFactory(cell -> new CheckBoxTableCell<>());
+        selectColumn.setCellFactory(CheckBoxTableCell.forTableColumn(selectColumn));
         nameColumn.setCellValueFactory(cellData -> cellData.getValue().nameProperty());
         sizeColumn.setCellValueFactory(cellData -> cellData.getValue().sizeProperty());
         durationColumn.setCellValueFactory(cellData -> cellData.getValue().durationProperty());
         typeColumn.setCellValueFactory(cellData -> cellData.getValue().typeProperty());
 
         tableView.setPlaceholder(new Label("Your Video Bin is empty"));
+        tableView.setRowFactory(tv -> {
+            TableRow<Video> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (!row.isEmpty()) {
+                    Video rowData = row.getItem();
+                    // Toggle checkbox
+                    rowData.selectedProperty().set(!rowData.selectedProperty().get());
+                }
+            });
+            return row;
+        });
         tableView.setItems(videoData);
     }
 
