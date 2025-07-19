@@ -70,6 +70,9 @@ public class VideoUtil {
             return "Unknown";
         } finally {
             // Free resources
+            if (formatContext != null && !formatContext.isNull()) {
+                avformat.avformat_close_input(formatContext);
+            }
             avformat.avformat_free_context(formatContext);
         }
     }
