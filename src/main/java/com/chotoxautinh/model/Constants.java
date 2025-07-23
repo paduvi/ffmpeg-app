@@ -23,4 +23,6 @@ public class Constants {
     public static final String DATABASE_USER = "sa";
     public static final String DATABASE_PASSWORD = "";
     public static final int DATABASE_CONNECTION_POOL_SIZE = 10;
+
+    public static final String SAMPLE_IMAGE_KEY = "SAMPLE_IMAGE";
 }

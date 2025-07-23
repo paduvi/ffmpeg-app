@@ -1,5 +1,6 @@
 package com.chotoxautinh.service;
 
+import com.chotoxautinh.conf.AppConfig;
 import com.chotoxautinh.dao.SampleImageDAO;
 import com.chotoxautinh.model.Constants;
 import com.chotoxautinh.model.SampleImage;
@@ -15,10 +16,12 @@ import java.nio.file.StandardCopyOption;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
+import java.util.prefs.Preferences;
 
 public class SampleImageService {
     private static final Logger LOGGER = LoggerFactory.getLogger(SampleImageService.class);
     private final SampleImageDAO sampleImageDAO = SampleImageDAO.getInstance();
+    private final Preferences prefs = Preferences.userNodeForPackage(AppConfig.class);
 
     // Private constructor to prevent direct instantiation
     private SampleImageService() {
@@ -36,7 +39,8 @@ public class SampleImageService {
         boolean firstCreation = sampleImageDAO.setupDatabase();
         if (firstCreation) {
             LOGGER.info("Database created successfully");
-            sampleImageDAO.save(new SampleImage("sample.png", true, ""));
+            SampleImage sampleImage = sampleImageDAO.save(new SampleImage("sample.png", true, ""));
+            prefs.put(Constants.SAMPLE_IMAGE_KEY, String.valueOf(sampleImage.getId()));
 
             // Print all current records
             List<SampleImage> images = sampleImageDAO.listAll();

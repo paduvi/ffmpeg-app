@@ -1,21 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
 
-<AnchorPane prefHeight="400.0" prefWidth="600.0" style="-fx-background-color: #e9ebee;"
-            xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.chotoxautinh.controller.VideoCuttingLayout">
-    <Label alignment="CENTER" text="Coming Soon..." textAlignment="CENTER" AnchorPane.bottomAnchor="0.0"
-           AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
-
+<AnchorPane prefHeight="600.0" prefWidth="800.0" style="-fx-background-color: #e9ebee;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.chotoxautinh.controller.VideoCuttingController">
     <!-- Overlay Section -->
-    <AnchorPane fx:id="overlay" prefHeight="600.0" prefWidth="800.0"
-                style="-fx-background-color: rgba(0, 0, 0, 1);" AnchorPane.bottomAnchor="0.0"
-                AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-        <Label text="This feature is currently not available. Please recheck Python3 validity in your system."
-               textFill="WHITE" alignment="CENTER" textAlignment="CENTER" wrapText="true" maxWidth="400.0"
-               AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
-               AnchorPane.topAnchor="0.0"/>
+    <AnchorPane fx:id="overlay" prefHeight="600.0" prefWidth="800.0" style="-fx-background-color: rgba(0, 0, 0, 1);" visible="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <Label alignment="CENTER" maxWidth="400.0" text="This feature is currently not available. Please recheck Python3 validity in your system." textAlignment="CENTER" textFill="WHITE" wrapText="true" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
     </AnchorPane>
+    <BorderPane AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <center>
+            <Label alignment="CENTER" text="Coming Soon..." textAlignment="CENTER" BorderPane.alignment="CENTER" />
+        </center>
+        <right>
+            <VBox prefWidth="450.0" BorderPane.alignment="CENTER">
+                <StackPane prefWidth="450.0" prefHeight="270.0" VBox.vgrow="NEVER">
+                    <ImageView fx:id="previewImg" fitHeight="270.0" fitWidth="450.0" preserveRatio="true">
+                        <Image url="@../img/sample.png"/>
+                    </ImageView>
+                </StackPane>
+                <TableView fx:id="tableView" editable="true" focusTraversable="false" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="selectColumn" prefWidth="50.0" resizable="false" sortable="false" styleClass="selectColumn" />
+                        <TableColumn fx:id="nameColumn" editable="false" prefWidth="300.0" resizable="false" sortable="false" text="Name" />
+                        <TableColumn fx:id="actionColumn" prefWidth="100.0" resizable="false" sortable="false" />
+                    </columns>
+                </TableView>
+            </VBox>
+        </right>
+    </BorderPane>
 </AnchorPane>

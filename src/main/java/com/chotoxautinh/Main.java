@@ -48,7 +48,7 @@ public class Main extends Application {
         Parent splashRoot = loader.load();
         SplashController splashController = loader.getController();
 
-        // Create a new stage for splash screen
+        // Create a new stage for the splash screen
         Stage splashStage = new Stage(StageStyle.UNDECORATED);
         Scene splashScene = new Scene(splashRoot);
         splashStage.setScene(splashScene);
@@ -101,7 +101,7 @@ public class Main extends Application {
 
                 // 4. Load video cutting resources
                 Platform.runLater(() ->
-                        splashController.updateProgress(0.75, "Loading additional video cutting resources...")
+                        splashController.updateProgress(0.75, "Loading additional resources...")
                 );
                 VideoCuttingService.getInstance().initialize();
             } catch (Throwable e) {
@@ -114,7 +114,7 @@ public class Main extends Application {
                 return;
             }
 
-            // Loading complete, show main window
+            // Loading complete, show the main window
             Platform.runLater(() -> {
                 try {
                     initRootLayout();
