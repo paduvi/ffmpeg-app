@@ -20,6 +20,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.prefs.Preferences;
 
 public class AbstractProgressController extends AbstractController {
@@ -30,6 +32,8 @@ public class AbstractProgressController extends AbstractController {
 
     private String containFolder;
     private boolean running = false;
+
+    private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     private final List<Task<Double>> taskList = new ArrayList<>();
 
     @FXML
@@ -45,6 +49,19 @@ public class AbstractProgressController extends AbstractController {
     private void initialize() {
         openBtn.setOnAction(event -> handleOpen());
         btn.setOnAction(event -> handleBtn());
+
+        String path = prefs.get(Constants.CONTAINER_KEY, Constants.DEFAULT_CONTAINER_VALUE);
+        if (!path.endsWith(File.separator)) {
+            path += File.separator;
+        }
+        path += DATE_TIME_FORMATTER.format(LocalDateTime.now());
+
+        boolean created = new File(path).mkdirs();
+        if (created) {
+            LOGGER.info("Created folder: {}", path);
+        }
+
+        containFolder = path;
     }
 
     private void handleBtn() {
@@ -67,6 +84,8 @@ public class AbstractProgressController extends AbstractController {
         for (Task<Double> task : taskList) {
             task.cancel();
         }
+        executor.shutdown();
+
         btn.setText("Close");
         timeLabel.setText("Canceled!");
         getStage().setTitle("Canceled!");
@@ -75,7 +94,7 @@ public class AbstractProgressController extends AbstractController {
 
     private void handleOpen() {
         try {
-            Desktop.getDesktop().open(new File(this.containFolder));
+            Desktop.getDesktop().open(new File(this.getContainFolder()));
         } catch (IOException e) {
             LOGGER.error("Error opening folder", e);
 
@@ -109,29 +128,18 @@ public class AbstractProgressController extends AbstractController {
     }
 
     protected String getContainFolder() {
-        if (containFolder != null) {
-            return containFolder;
-        }
-        String path = prefs.get(Constants.CONTAINER_KEY, Constants.DEFAULT_CONTAINER_VALUE);
-        if (!path.endsWith(File.separator)) {
-            path += File.separator;
-        }
-        path += DATE_TIME_FORMATTER.format(LocalDateTime.now());
-
-        boolean created = new File(path).mkdirs();
-        if (created) {
-            LOGGER.info("Created folder: {}", path);
-        }
-
-        containFolder = path;
         return containFolder;
     }
 
     protected void addTask(Task<Double> task) {
         taskList.add(task);
+
+        Thread thread = new Thread(task);
+        thread.setDaemon(true); // It means this task can be terminated whenever the main program ends.
+        executor.submit(thread);
     }
 
-    protected void updateTimeLabel(String text) {
+    protected void updateLabel(String text) {
         timeLabel.setText(text);
     }
 
@@ -140,7 +148,9 @@ public class AbstractProgressController extends AbstractController {
     }
 
     protected void done() {
-        updateTimeLabel("Completed!");
+        executor.shutdown();
+
+        updateLabel("Completed!");
         openBtn.setVisible(true);
         btn.setText("Close");
         getStage().setTitle("Done!");

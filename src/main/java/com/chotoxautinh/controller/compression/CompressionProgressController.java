@@ -61,7 +61,7 @@ public class CompressionProgressController extends AbstractProgressController {
         latch = new CountDownLatch(videos.size());
 
         setRunning(true);
-        updateTimeLabel("0%");
+        updateLabel("0%");
         for (Video video : videos) {
             ProcessBuilder builder = new ProcessBuilder(getBinaryPath(), "-i", video.getPath(), "-c:v", "h264",
                     "-c:a", getAudioCodec(), "-preset", getPreset(), "-crf", String.valueOf(getCrf()), getContainFolder() + File.separator + video.getName() + ".mp4");
@@ -121,8 +121,7 @@ public class CompressionProgressController extends AbstractProgressController {
                     }
                 }
             };
-            addTask(task);
-            Thread thread = new Thread(task);
+
             task.setOnFailed(event -> {
                 LOGGER.error("Error running ffmpeg: ", event.getSource().getException());
 
@@ -142,11 +141,11 @@ public class CompressionProgressController extends AbstractProgressController {
                 if (latch.getCount() == 0) {
                     done();
                 } else {
-                    updateTimeLabel(Math.round(newValue * 100) + "%");
+                    updateLabel(Math.round(newValue * 100) + "%");
                 }
             });
-            thread.setDaemon(true);
-            thread.start();
+
+            addTask(task);
         }
     }
 
