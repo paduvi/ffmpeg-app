@@ -144,6 +144,10 @@ public class VideoCompressionController extends AbstractController {
             // Load the fxml file and create a new stage for the popup.
             FXMLLoader loader = new FXMLLoader();
             loader.setLocation(getClass().getResource("/view/ProgressLayout.fxml"));
+
+            CompressionProgressController controller = new CompressionProgressController();
+            loader.setController(controller);
+
             VBox progress = loader.load();
             Stage dialogStage = new Stage();
             dialogStage.setTitle("Processing...");
@@ -154,9 +158,7 @@ public class VideoCompressionController extends AbstractController {
             dialogStage.setScene(scene);
 
             // Set the persons into the controller.
-            ProgressController controller = loader.getController();
             controller.setStage(dialogStage);
-
             controller.setVideos(list);
 
             dialogStage.show();

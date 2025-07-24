@@ -25,4 +25,8 @@ public class DBConnectionUtil {
     public static DataSource getDataSource() {
         return dataSource;
     }
+
+    public static void shutdown() {
+        dataSource.close();
+    }
 }

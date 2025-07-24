@@ -3,13 +3,16 @@ package com.chotoxautinh.controller;
 import com.chotoxautinh.conf.AppConfig;
 import com.chotoxautinh.model.Constants;
 import com.chotoxautinh.model.SampleImage;
+import com.chotoxautinh.model.Video;
 import com.chotoxautinh.service.SampleImageService;
 import com.chotoxautinh.util.AppUtil;
 import com.chotoxautinh.util.PythonUtil;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
@@ -21,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -32,31 +36,65 @@ public class VideoCuttingController extends AbstractController {
 
     @FXML
     private AnchorPane overlay;
-
     @FXML
     private ImageView previewImg;
 
     @FXML
-    private TableView<SampleImage> tableView;
+    private TableView<Video> tableView;
     @FXML
-    private TableColumn<SampleImage, Boolean> selectColumn;
+    private TableColumn<Video, Boolean> selectColumn;
     @FXML
-    private TableColumn<SampleImage, String> nameColumn;
+    private TableColumn<Video, String> nameColumn;
     @FXML
-    private TableColumn<SampleImage, Void> actionColumn;
+    private TableColumn<Video, String> durationColumn;
+    @FXML
+    private TableColumn<Video, String> sizeColumn;
+    @FXML
+    private TableColumn<Video, String> typeColumn;
+
+    @FXML
+    private TableView<SampleImage> sampleImageTableView;
+    @FXML
+    private TableColumn<SampleImage, Boolean> sampleImageSelectColumn;
+    @FXML
+    private TableColumn<SampleImage, String> sampleImageNameColumn;
+    @FXML
+    private TableColumn<SampleImage, Void> sampleImageActionColumn;
 
     private final SampleImageService sampleImageService = SampleImageService.getInstance();
     private final ObservableList<SampleImage> sampleImageData = FXCollections.observableArrayList();
+    private final ObservableList<Video> videoData = FXCollections.observableArrayList();
     private final ToggleGroup toggleGroup = new ToggleGroup();
 
     @FXML
     private void initialize() throws IOException, URISyntaxException, InterruptedException, SQLException {
         if (!PythonUtil.isPythonAvailable()) {
-            showOverlay(true);
+            overlay.setVisible(true);
         }
 
         selectColumn.setCellValueFactory(cellData -> cellData.getValue().selectedProperty());
-        selectColumn.setCellFactory(column -> new TableCell<>() {
+        selectColumn.setCellFactory(CheckBoxTableCell.forTableColumn(selectColumn));
+        nameColumn.setCellValueFactory(cellData -> cellData.getValue().nameProperty());
+        sizeColumn.setCellValueFactory(cellData -> cellData.getValue().sizeProperty());
+        durationColumn.setCellValueFactory(cellData -> cellData.getValue().durationProperty());
+        typeColumn.setCellValueFactory(cellData -> cellData.getValue().typeProperty());
+
+        tableView.setPlaceholder(new Label("Your Video Bin is empty"));
+        tableView.setRowFactory(tv -> {
+            TableRow<Video> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (!row.isEmpty()) {
+                    Video rowData = row.getItem();
+                    // Toggle checkbox
+                    rowData.selectedProperty().set(!rowData.selectedProperty().get());
+                }
+            });
+            return row;
+        });
+        tableView.setItems(videoData);
+
+        sampleImageSelectColumn.setCellValueFactory(cellData -> cellData.getValue().selectedProperty());
+        sampleImageSelectColumn.setCellFactory(column -> new TableCell<>() {
             private final RadioButton radioButton = new RadioButton();
 
             {
@@ -78,8 +116,8 @@ public class VideoCuttingController extends AbstractController {
             }
         });
 
-        actionColumn.setGraphic(getActionHeaderButton());
-        actionColumn.setCellFactory(col -> new TableCell<>() {
+        sampleImageActionColumn.setGraphic(getActionHeaderButton());
+        sampleImageActionColumn.setCellFactory(col -> new TableCell<>() {
             private final Button btn = new Button("Delete");
 
             @Override
@@ -113,21 +151,21 @@ public class VideoCuttingController extends AbstractController {
             }
         });
 
-        nameColumn.setCellValueFactory(cellData -> cellData.getValue().nameProperty());
+        sampleImageNameColumn.setCellValueFactory(cellData -> cellData.getValue().nameProperty());
 
-        tableView.setRowFactory(tv -> {
+        sampleImageTableView.setRowFactory(tv -> {
             TableRow<SampleImage> row = new TableRow<>();
 
             row.setOnMouseClicked(event -> {
                 if (!row.isEmpty()) {
                     // Identify the selected position
-                    TablePosition<?, ?> pos = tableView.getSelectionModel().getSelectedCells().stream()
+                    TablePosition<?, ?> pos = sampleImageTableView.getSelectionModel().getSelectedCells().stream()
                             .findFirst().orElse(null);
 
                     if (pos == null) return;
 
                     int clickedColumnIndex = pos.getColumn();
-                    int lastColumnIndex = tableView.getColumns().size() - 1;
+                    int lastColumnIndex = sampleImageTableView.getColumns().size() - 1;
 
                     // Ignore if it's the last column
                     if (clickedColumnIndex == lastColumnIndex) {
@@ -139,7 +177,7 @@ public class VideoCuttingController extends AbstractController {
 
             return row;
         });
-        tableView.setItems(sampleImageData);
+        sampleImageTableView.setItems(sampleImageData);
 
         String selectedId = prefs.get(Constants.SAMPLE_IMAGE_KEY, null);
         for (SampleImage sampleImage : sampleImageService.listAll()) {
@@ -158,10 +196,10 @@ public class VideoCuttingController extends AbstractController {
     }
 
     private void selectSampleImage(int index) {
-        SampleImage selectedItem = tableView.getItems().get(index);
+        SampleImage selectedItem = sampleImageTableView.getItems().get(index);
         prefs.put(Constants.SAMPLE_IMAGE_KEY, String.valueOf(selectedItem.getId()));
 
-        for (SampleImage r : tableView.getItems()) {
+        for (SampleImage r : sampleImageTableView.getItems()) {
             boolean isSelected = r.getId().equals(selectedItem.getId());
             r.setSelected(isSelected);
             r.setDeleteVisible(!isSelected);
@@ -174,7 +212,7 @@ public class VideoCuttingController extends AbstractController {
                 }
             }
         }
-        tableView.refresh();
+        sampleImageTableView.refresh();
     }
 
     private Button getActionHeaderButton() {
@@ -208,8 +246,94 @@ public class VideoCuttingController extends AbstractController {
         return headerButton;
     }
 
-    public void showOverlay(boolean show) {
-        overlay.setVisible(show);
+    @FXML
+    private void handleOpen(ActionEvent event) {
+        Button button = (Button) event.getSource();
+        button.setDisable(true);
+
+        FileChooser fileChooser = new FileChooser();
+
+        // Set extension filter
+        fileChooser.getExtensionFilters()
+                .add(new FileChooser.ExtensionFilter("MPEG (.mpeg,mp4,mp3)", "*.mpeg", "*.mp4", "*.mp3"));
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("QuickTime File Format (.mov)", "*.mov"));
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("AVI (.avi)", "*.avi"));
+        fileChooser.getExtensionFilters()
+                .add(new FileChooser.ExtensionFilter("Ogg Video (.ogg,ogv)", "*.ogv", "*.ogg"));
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("GIF (.gif)", "*.gif"));
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Flash Video (.flv)", "*.flv"));
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("M4V (.m4v)", "*.m4v"));
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Windows Media Video (.wmv)", "*.wmv"));
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("WebM (.webm)", "*.webm"));
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Matroska (.mkv)", "*.mkv"));
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Vob (.vob)", "*.vob"));
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Dirac (.dirac)", "*.dirac"));
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("RealMedia (.rm)", "*.rm"));
+        fileChooser.getExtensionFilters()
+                .add(new FileChooser.ExtensionFilter("Advanced Systems Format (.asf)", "*.asf"));
+        fileChooser.getExtensionFilters()
+                .add(new FileChooser.ExtensionFilter("Material Exchange Format (.mxf)", "*.mxf"));
+        fileChooser.getExtensionFilters()
+                .add(new FileChooser.ExtensionFilter("Nullsoft Streaming Video (.nsv)", "*.nsv"));
+
+        List<String> allExtensions = new LinkedList<>();
+        for (FileChooser.ExtensionFilter extensionFilter : fileChooser.getExtensionFilters()) {
+            allExtensions.addAll(extensionFilter.getExtensions());
+        }
+        fileChooser.getExtensionFilters().addFirst(new FileChooser.ExtensionFilter("All", allExtensions));
+
+        // Show open file dialog
+        List<File> files = fileChooser.showOpenMultipleDialog(getStage());
+
+        if (files != null && !files.isEmpty()) {
+            loadVideoDataFromFiles(files);
+        }
+        button.setDisable(false);
+    }
+
+    @FXML
+    private void handleRemove() {
+        videoData.removeIf(Video::getSelected);
+    }
+
+    @FXML
+    private void handleSelectAll() {
+        for (Video video : videoData) {
+            video.setSelected(true);
+        }
+    }
+
+    @FXML
+    private void handleCut() {
+        List<Video> list = new ArrayList<>();
+        for (Video video : videoData) {
+            if (video.getSelected())
+                list.add(video);
+        }
+        if (list.isEmpty()) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Warning");
+            alert.setHeaderText(null);
+            alert.setContentText("You pressed the button without selecting any video. Really!!!??");
+
+            alert.showAndWait();
+            return;
+        }
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("In development");
+        alert.setHeaderText(null);
+        alert.setContentText("Coming soon...");
+
+        alert.showAndWait();
+    }
+
+    private void loadVideoDataFromFiles(List<File> files) {
+        // Check duplicated files
+        List<String> mapped = videoData.stream().map(Video::getPath).toList();
+        for (File file : files) {
+            if (!mapped.contains(file.getAbsolutePath()))
+                videoData.add(new Video(file));
+        }
     }
 
 }

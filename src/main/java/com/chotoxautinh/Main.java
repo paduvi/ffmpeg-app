@@ -7,6 +7,7 @@ import com.chotoxautinh.model.Constants;
 import com.chotoxautinh.service.SampleImageService;
 import com.chotoxautinh.service.VideoCuttingService;
 import com.chotoxautinh.util.AppUtil;
+import com.chotoxautinh.util.DBConnectionUtil;
 import com.chotoxautinh.util.PythonUtil;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -147,7 +148,7 @@ public class Main extends Application {
         // Show the scene containing the root layout.
         Scene scene = new Scene(rootLayout, 1000, 600);
         scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/style/application.css")).toExternalForm());
-        primaryStage.setOnCloseRequest(event -> Platform.exit());
+        primaryStage.setOnCloseRequest(event -> DBConnectionUtil.shutdown());
 
         // Get the visual bounds of the primary screen (excludes taskbar)
         Rectangle2D visualBounds = Screen.getPrimary().getVisualBounds();

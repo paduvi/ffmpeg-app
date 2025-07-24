@@ -5,41 +5,36 @@
 <?import javafx.scene.image.*?>
 <?import javafx.scene.layout.*?>
 
-<VBox spacing="15.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.chotoxautinh.controller.ProgressController">
-   <children>
-      <ProgressBar fx:id="progressBar" prefHeight="20.0" prefWidth="586.0" progress="0.0">
-         <VBox.margin>
-            <Insets top="10.0" />
-         </VBox.margin>
-      </ProgressBar>
-      <AnchorPane prefHeight="43.0" prefWidth="586.0">
-         <children>
-            <Label fx:id="timeLabel" alignment="CENTER" contentDisplay="CENTER" layoutY="8.0" prefHeight="27.0" prefWidth="126.0" text="Calculating..." AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="460.0" />
-            <Button fx:id="btn" layoutX="490.0" layoutY="5.0" mnemonicParsing="false" onAction="#handleBtn" style="-fx-background-color: #C1392B;" text="Cancel" textFill="WHITE" AnchorPane.rightAnchor="0.0">
-               <graphic>
-                  <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
-                     <image>
-                        <Image url="@../img/cancel.png" />
-                     </image>
-                  </ImageView>
-               </graphic>
-            </Button>
-            <Button fx:id="openBtn" layoutX="343.0" layoutY="5.0" mnemonicParsing="false" onAction="#handleOpen" style="-fx-background-color: #906AA3;" text="Show in Folder" textFill="WHITE" visible="false">
-               <graphic>
-                  <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
-                     <image>
-                        <Image url="@../img/open-icon.png" />
-                     </image>
-                  </ImageView>
-               </graphic>
-            </Button>
-         </children>
-         <VBox.margin>
-            <Insets />
-         </VBox.margin>
-      </AnchorPane>
-   </children>
+<VBox spacing="15.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1">
    <padding>
-      <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
+      <Insets bottom="15.0" left="15.0" right="15.0" top="15.0"/>
    </padding>
+   <ProgressBar fx:id="progressBar" prefHeight="20.0" prefWidth="586.0" progress="0.0">
+      <VBox.margin>
+         <Insets top="10.0"/>
+      </VBox.margin>
+   </ProgressBar>
+   <AnchorPane prefHeight="43.0" prefWidth="586.0">
+      <VBox.margin>
+         <Insets/>
+      </VBox.margin>
+      <Label fx:id="timeLabel" alignment="CENTER" contentDisplay="CENTER" layoutY="8.0" prefHeight="27.0"
+             prefWidth="126.0" text="Calculating..." AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="460.0"/>
+      <Button fx:id="btn" layoutX="490.0" layoutY="5.0" mnemonicParsing="false"
+              style="-fx-background-color: #C1392B;" text="Cancel" textFill="WHITE" AnchorPane.rightAnchor="0.0">
+         <graphic>
+            <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
+               <Image url="@../img/cancel.png"/>
+            </ImageView>
+         </graphic>
+      </Button>
+      <Button fx:id="openBtn" layoutX="343.0" layoutY="5.0" mnemonicParsing="false"
+              style="-fx-background-color: #906AA3;" text="Show in Folder" textFill="WHITE" visible="false">
+         <graphic>
+            <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
+               <Image url="@../img/open-icon.png"/>
+            </ImageView>
+         </graphic>
+      </Button>
+   </AnchorPane>
 </VBox>
