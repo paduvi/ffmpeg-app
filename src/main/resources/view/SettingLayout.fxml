@@ -13,7 +13,7 @@
 <?import javafx.scene.layout.VBox?>
 
 <VBox spacing="15.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.chotoxautinh.controller.SettingController">
+      fx:controller="com.chotoxautinh.controller.menu.SettingController">
    <padding>
       <Insets bottom="15.0" left="15.0" right="15.0" top="15.0"/>
    </padding>

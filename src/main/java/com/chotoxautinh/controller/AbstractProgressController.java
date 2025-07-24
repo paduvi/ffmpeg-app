@@ -63,7 +63,7 @@ public class AbstractProgressController extends AbstractController {
         }
     }
 
-    void handleCancel() {
+    protected void handleCancel() {
         for (Task<Double> task : taskList) {
             task.cancel();
         }

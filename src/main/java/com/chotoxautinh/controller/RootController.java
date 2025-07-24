@@ -1,6 +1,7 @@
 package com.chotoxautinh.controller;
 
 import com.chotoxautinh.conf.AppConfig;
+import com.chotoxautinh.controller.menu.SettingController;
 import com.chotoxautinh.model.MenuSection;
 import com.chotoxautinh.util.AppUtil;
 import javafx.fxml.FXML;

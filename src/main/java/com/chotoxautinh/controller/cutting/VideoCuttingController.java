@@ -1,6 +1,7 @@
-package com.chotoxautinh.controller;
+package com.chotoxautinh.controller.cutting;
 
 import com.chotoxautinh.conf.AppConfig;
+import com.chotoxautinh.controller.AbstractController;
 import com.chotoxautinh.model.Constants;
 import com.chotoxautinh.model.SampleImage;
 import com.chotoxautinh.model.Video;
@@ -116,9 +117,8 @@ public class VideoCuttingController extends AbstractController {
             }
         });
 
-        sampleImageActionColumn.setGraphic(getActionHeaderButton());
         sampleImageActionColumn.setCellFactory(col -> new TableCell<>() {
-            private final Button btn = new Button("Delete");
+            private final Button btn = new Button("Remove");
 
             @Override
             protected void updateItem(Void item, boolean empty) {
@@ -215,35 +215,35 @@ public class VideoCuttingController extends AbstractController {
         sampleImageTableView.refresh();
     }
 
-    private Button getActionHeaderButton() {
-        Button headerButton = new Button("Add Image");
-        headerButton.setOnAction(e -> {
-            FileChooser fileChooser = new FileChooser();
+    @FXML
+    private void handleAddSampleImage(ActionEvent event) {
+        Button button = (Button) event.getSource();
+        button.setDisable(true);
+        FileChooser fileChooser = new FileChooser();
 
-            // Set extension filter
-            fileChooser.getExtensionFilters()
-                    .add(new FileChooser.ExtensionFilter("Joint Photographic Experts Group (.jpg,jpeg)", "*.jpg", "*.jpeg"));
-            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Portable Network Graphics (.png)", "*.png"));
+        // Set extension filter
+        fileChooser.getExtensionFilters()
+                .add(new FileChooser.ExtensionFilter("Joint Photographic Experts Group (.jpg,jpeg)", "*.jpg", "*.jpeg"));
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Portable Network Graphics (.png)", "*.png"));
 
-            List<String> allExtensions = new LinkedList<>();
-            for (FileChooser.ExtensionFilter extensionFilter : fileChooser.getExtensionFilters()) {
-                allExtensions.addAll(extensionFilter.getExtensions());
-            }
-            fileChooser.getExtensionFilters().addFirst(new FileChooser.ExtensionFilter("All", allExtensions));
+        List<String> allExtensions = new LinkedList<>();
+        for (FileChooser.ExtensionFilter extensionFilter : fileChooser.getExtensionFilters()) {
+            allExtensions.addAll(extensionFilter.getExtensions());
+        }
+        fileChooser.getExtensionFilters().addFirst(new FileChooser.ExtensionFilter("All", allExtensions));
 
-            for (File file : fileChooser.showOpenMultipleDialog(getStage())) {
-                if (file != null) {
-                    try {
-                        SampleImage sampleImage = sampleImageService.saveImage(file);
-                        sampleImageData.add(sampleImage);
-                    } catch (SQLException | IOException ex) {
-                        LOGGER.error("Error sampleImageService.saveImage: {}", ex.getMessage(), ex);
-                        AppUtil.alertError(ex);
-                    }
+        for (File file : fileChooser.showOpenMultipleDialog(getStage())) {
+            if (file != null) {
+                try {
+                    SampleImage sampleImage = sampleImageService.saveImage(file);
+                    sampleImageData.add(sampleImage);
+                } catch (SQLException | IOException ex) {
+                    LOGGER.error("Error sampleImageService.saveImage: {}", ex.getMessage(), ex);
+                    AppUtil.alertError(ex);
                 }
             }
-        });
-        return headerButton;
+        }
+        button.setDisable(false);
     }
 
     @FXML

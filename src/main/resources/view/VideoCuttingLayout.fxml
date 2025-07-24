@@ -13,7 +13,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.text.Font?>
-<AnchorPane prefHeight="600.0" prefWidth="800.0" style="-fx-background-color: #e9ebee;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.chotoxautinh.controller.VideoCuttingController">
+<AnchorPane prefHeight="600.0" prefWidth="800.0" style="-fx-background-color: #e9ebee;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.chotoxautinh.controller.cutting.VideoCuttingController">
     <!-- Overlay Section -->
     <AnchorPane fx:id="overlay" prefHeight="600.0" prefWidth="800.0" style="-fx-background-color: rgba(0, 0, 0, 1);" visible="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
         <Label alignment="CENTER" maxWidth="400.0" text="This feature is currently not available. Please recheck Python3 validity in your system." textAlignment="CENTER" textFill="WHITE" wrapText="true" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
@@ -89,7 +89,12 @@
                     <columns>
                         <TableColumn fx:id="sampleImageSelectColumn" prefWidth="50.0" resizable="false" sortable="false" styleClass="selectColumn" />
                         <TableColumn fx:id="sampleImageNameColumn" editable="false" prefWidth="295.0" maxWidth="Infinity" resizable="false" sortable="false" text="Name" />
-                        <TableColumn fx:id="sampleImageActionColumn" prefWidth="100.0" resizable="false" sortable="false" />
+                        <TableColumn fx:id="sampleImageActionColumn" prefWidth="100.0" resizable="false" sortable="false">
+                            <graphic>
+                                <Button mnemonicParsing="false" text="Add Photo" onAction="#handleAddSampleImage">
+                                </Button>
+                            </graphic>
+                        </TableColumn>
                     </columns>
                 </TableView>
             </VBox>

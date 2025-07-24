@@ -1,5 +1,6 @@
-package com.chotoxautinh.controller;
+package com.chotoxautinh.controller.compression;
 
+import com.chotoxautinh.controller.AbstractController;
 import com.chotoxautinh.model.Video;
 import com.chotoxautinh.util.AppUtil;
 import javafx.collections.FXCollections;
@@ -103,7 +104,7 @@ public class VideoCompressionController extends AbstractController {
         }
         fileChooser.getExtensionFilters().addFirst(new FileChooser.ExtensionFilter("All", allExtensions));
 
-        // Show open file dialog
+        // Show the open file dialog
         List<File> files = fileChooser.showOpenMultipleDialog(getStage());
 
         if (files != null && !files.isEmpty()) {

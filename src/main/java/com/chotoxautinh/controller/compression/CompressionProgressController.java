@@ -1,6 +1,7 @@
-package com.chotoxautinh.controller;
+package com.chotoxautinh.controller.compression;
 
 import com.chotoxautinh.conf.AppConfig;
+import com.chotoxautinh.controller.AbstractProgressController;
 import com.chotoxautinh.model.AudioCodec;
 import com.chotoxautinh.model.Constants;
 import com.chotoxautinh.model.Preset;
