@@ -75,7 +75,7 @@ public class Main extends Application {
                 Platform.runLater(() ->
                         splashController.updateProgress(0.5, "Checking Python binary availability...")
                 );
-                if (!PythonUtil.isPythonAvailable()) {
+                if (PythonUtil.isPythonAvailable()) {
                     Platform.runLater(() -> {
                         splashStage.close();
 
@@ -96,9 +96,8 @@ public class Main extends Application {
                         });
                     });
                     return;
-                } else {
-                    LOGGER.info("Python is already available.");
                 }
+                LOGGER.info("Python is already available.");
 
                 // 4. Load video cutting resources
                 Platform.runLater(() ->
@@ -148,7 +147,10 @@ public class Main extends Application {
         // Show the scene containing the root layout.
         Scene scene = new Scene(rootLayout, 1000, 600);
         scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/style/application.css")).toExternalForm());
-        primaryStage.setOnCloseRequest(event -> DBConnectionUtil.shutdown());
+        primaryStage.setOnCloseRequest(event -> {
+            DBConnectionUtil.shutdown();
+            VideoCuttingService.getInstance().shutdown();
+        });
 
         // Get the visual bounds of the primary screen (excludes taskbar)
         Rectangle2D visualBounds = Screen.getPrimary().getVisualBounds();

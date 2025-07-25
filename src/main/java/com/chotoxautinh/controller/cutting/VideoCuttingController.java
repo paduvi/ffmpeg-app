@@ -69,7 +69,7 @@ public class VideoCuttingController extends AbstractController {
 
     @FXML
     private void initialize() throws IOException, URISyntaxException, InterruptedException, SQLException {
-        if (!PythonUtil.isPythonAvailable()) {
+        if (PythonUtil.isPythonAvailable()) {
             overlay.setVisible(true);
         }
 

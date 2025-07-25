@@ -5,6 +5,9 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.util.Duration;
 
+import java.io.IOException;
+import java.net.ServerSocket;
+
 public class AppUtil {
 
     public static void alertError(Throwable e) {
@@ -31,5 +34,16 @@ public class AppUtil {
         pause.setOnFinished(e -> button.setDisable(false));
         pause.play();
     }
+
+    public static int getAvailablePort() {
+        try (ServerSocket socket = new ServerSocket(0)) {
+            // setReuseAddress to allow the socket could be reusable after closing
+            socket.setReuseAddress(true);
+            return socket.getLocalPort();
+        } catch (IOException e) {
+            throw new RuntimeException("Could not find any available port: ", e);
+        }
+    }
+
 
 }

@@ -9,6 +9,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -25,13 +27,13 @@ public class PythonUtil {
 
     public static boolean isPythonAvailable() throws IOException, URISyntaxException, InterruptedException {
         if (!System.getProperty("os.name").toLowerCase().contains("win")) {
-            return checkPythonCommand("python") || checkPythonCommand("python3");
+            return !checkPythonCommand("python") && !checkPythonCommand("python3");
         }
         if (new File(Constants.DATA_PATH + File.separator + PYTHON_DIR).exists()) {
-            return true;
+            return false;
         }
         downloadAndInstallPython(Path.of(Constants.DATA_PATH));
-        return true;
+        return false;
     }
 
     public static void downloadAndInstallPython(Path installDir) throws IOException, InterruptedException, URISyntaxException {
@@ -58,7 +60,15 @@ public class PythonUtil {
         downloadFile(PIP_URL, getPip);
 
         LOGGER.info("⚙️ Installing pip...");
-        runPython(pythonDir.resolve("python.exe"), pythonDir, "get-pip.py");
+        Process p = runPython(pythonDir.resolve("python.exe"), pythonDir, "get-pip.py");
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                LOGGER.info("[script] {}", line);
+            }
+        }
+        int code = p.waitFor();
+        if (code != 0) throw new RuntimeException("Python exited with code: " + code);
         enableImportSite(pythonDir);
 
         LOGGER.info("✅ Setup complete!");
@@ -104,26 +114,40 @@ public class PythonUtil {
         }
     }
 
-    private static void runPython(Path pythonExe, Path workingDir, String scriptName) throws IOException, InterruptedException {
+    public static Process runPython(Path workingDir, String scriptName, String... params) throws IOException {
+        if (System.getProperty("os.name").toLowerCase().contains("win")) {
+            Path pythonDir = Path.of(Constants.DATA_PATH).resolve(PYTHON_DIR);
+
+            return runPython(pythonDir.resolve("python.exe"), workingDir, scriptName, params);
+        }
+        if (checkPythonCommand("python")) {
+            return runPython("python", workingDir, scriptName, params);
+        }
+        if (checkPythonCommand("python3")) {
+            return runPython("python3", workingDir, scriptName, params);
+        }
+        throw new RuntimeException("Python is not available on this system. Please install python 3.12.9 or higher.");
+    }
+
+    private static Process runPython(Path pythonExe, Path workingDir, String scriptName, String... params) throws IOException {
         if (!Files.exists(pythonExe)) {
             throw new FileNotFoundException("python.exe not found in: " + pythonExe);
         }
+        return runPython(pythonExe.toString(), workingDir, scriptName, params);
+    }
 
-        ProcessBuilder pb = new ProcessBuilder(
-                pythonExe.toString(),
-                scriptName
-        );
+    private static Process runPython(String pythonExe, Path workingDir, String scriptName, String... params) throws IOException {
+        List<String> command = new ArrayList<>();
+        command.addAll(List.of(pythonExe, scriptName));
+        command.addAll(Arrays.asList(params));
+
+        LOGGER.info("Running python command: {}", String.join(" ", command));
+
+        ProcessBuilder pb = new ProcessBuilder(command.toArray(new String[0]));
         pb.directory(workingDir.toFile());
+        pb.environment().put("PYTHONIOENCODING", "utf-8");
         pb.inheritIO();
-        Process p = pb.start();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                LOGGER.info("[script] {}", line);
-            }
-        }
-        int code = p.waitFor();
-        if (code != 0) throw new RuntimeException("Python exited with code: " + code);
+        return pb.start();
     }
 
     private static void enableImportSite(Path pythonDir) throws IOException {

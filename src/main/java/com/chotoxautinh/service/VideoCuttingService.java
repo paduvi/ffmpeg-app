@@ -1,6 +1,9 @@
 package com.chotoxautinh.service;
 
 import com.chotoxautinh.model.Constants;
+import com.chotoxautinh.util.AppUtil;
+import com.chotoxautinh.util.PythonUtil;
+import okhttp3.*;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.PullResult;
@@ -13,6 +16,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Objects;
 
 public class VideoCuttingService {
@@ -21,6 +26,10 @@ public class VideoCuttingService {
     private static final String REMOTE_URL = "https://github.com/paduvi/dogy-image-similarity.git";
     private static final String LOCAL_DIR = Constants.DATA_PATH + File.separator + "dogy-image-similarity";
     private static final String BRANCH = System.getProperty("branch", "dev");
+
+    private static final String HOST = "localhost";
+    private static final int PORT = AppUtil.getAvailablePort();
+    private Process pythonServerProcess;
 
     // Private constructor to prevent direct instantiation
     private VideoCuttingService() {
@@ -35,6 +44,57 @@ public class VideoCuttingService {
     }
 
     public void initialize() throws GitAPIException, IOException, InterruptedException, URISyntaxException {
+        pullProject();
+        startPythonServer();
+    }
+
+    public void shutdown() {
+        pythonServerProcess.destroy();
+    }
+
+    private void startPythonServer() throws IOException {
+        pythonServerProcess = PythonUtil.runPython(Path.of(LOCAL_DIR), "main.py", "--port", String.valueOf(PORT));
+        waitForServer("http://" + HOST + ":" + PORT + "/api/echo", Duration.ofSeconds(1).toMillis());
+    }
+
+    private void waitForServer(String url, long waitMillis) {
+        OkHttpClient client = new OkHttpClient();
+
+        while (true) {
+            try {
+                String json = """
+                        {
+                            "name": "Hao",
+                            "project": "Sea Group"
+                        }
+                        """;
+                RequestBody body = RequestBody.create(json, MediaType.get("application/json"));
+
+                Request request = new Request.Builder()
+                        .url(url)
+                        .post(body)
+                        .build();
+
+                try (Response response = client.newCall(request).execute()) {
+                    if (response.isSuccessful()) {
+                        LOGGER.info("✅ Python server is ready: {}", Objects.requireNonNull(response.body()).string());
+                        return;
+                    }
+                }
+            } catch (Exception e) {
+                LOGGER.warn("⏳ Not ready... will try again");
+            }
+
+            try {
+                Thread.sleep(waitMillis);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Thread is interrupted", e);
+            }
+        }
+    }
+
+    private void pullProject() throws GitAPIException, IOException, InterruptedException, URISyntaxException {
         File localPath = new File(LOCAL_DIR);
 
         if (!localPath.exists()) {
@@ -126,5 +186,4 @@ public class VideoCuttingService {
         outputThread.start();
         return outputThread;
     }
-
 }
