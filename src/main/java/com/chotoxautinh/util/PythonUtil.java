@@ -1,6 +1,6 @@
 package com.chotoxautinh.util;
 
-import com.chotoxautinh.model.Constants;
+import com.chotoxautinh.conf.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

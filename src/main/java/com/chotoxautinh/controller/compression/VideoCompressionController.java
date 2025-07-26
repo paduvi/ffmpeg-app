@@ -158,7 +158,7 @@ public class VideoCompressionController extends AbstractController {
             scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/style/application.css")).toExternalForm());
             dialogStage.setScene(scene);
 
-            // Set the persons into the controller.
+            // Set the videos into the controller.
             controller.setStage(dialogStage);
             controller.setVideos(list);
 

@@ -1,6 +1,6 @@
 package com.chotoxautinh.util;
 
-import com.chotoxautinh.model.Constants;
+import com.chotoxautinh.conf.Constants;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.h2.Driver;

@@ -26,7 +26,7 @@ export PATH_TO_FX_MODS=path/to/javafx-jmods
 # Create a custom runtime image
 jlink \
   --module-path "$JAVA_HOME/jmods:$PATH_TO_FX_MODS" \
-  --add-modules java.naming,java.sql,java.logging,javafx.controls,javafx.fxml \
+  --add-modules java.naming,java.management,java.sql,java.logging,jdk.crypto.ec,java.security.sasl,javafx.controls,javafx.fxml \
   --output jre
   
 # Build and package for different MacOSX types
@@ -71,7 +71,7 @@ $env:PATH_TO_FX_MODS="path/to/javafx-jmods"
 
 # Create a custom runtime image
 jlink --module-path "$env:JAVA_HOME\jmods;$env:PATH_TO_FX_MODS" `
-      --add-modules java.naming,java.sql,java.logging,javafx.controls,javafx.fxml `
+      --add-modules java.naming,java.management,java.sql,java.logging,jdk.crypto.ec,java.security.sasl,javafx.controls,javafx.fxml `
       --output jre
       
 # Build and package for different Windows types

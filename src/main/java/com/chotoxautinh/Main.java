@@ -1,11 +1,12 @@
 package com.chotoxautinh;
 
 import com.chotoxautinh.conf.AppConfig;
+import com.chotoxautinh.conf.Constants;
 import com.chotoxautinh.controller.RootController;
 import com.chotoxautinh.controller.SplashController;
-import com.chotoxautinh.model.Constants;
-import com.chotoxautinh.service.SampleImageService;
 import com.chotoxautinh.service.VideoCuttingService;
+import com.chotoxautinh.service.impl.SampleImageServiceImpl;
+import com.chotoxautinh.service.impl.VideoCuttingServiceImpl;
 import com.chotoxautinh.util.AppUtil;
 import com.chotoxautinh.util.DBConnectionUtil;
 import com.chotoxautinh.util.PythonUtil;
@@ -36,6 +37,8 @@ import java.util.logging.LogManager;
 public class Main extends Application {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
     private Stage primaryStage;
+    private final VideoCuttingService videoCuttingService = VideoCuttingServiceImpl.getInstance();
+    private final SampleImageServiceImpl sampleImageService = SampleImageServiceImpl.getInstance();
 
     @Override
     public void start(Stage primaryStage) throws IOException {
@@ -63,7 +66,7 @@ public class Main extends Application {
                 Platform.runLater(() ->
                         splashController.updateProgress(0, "Loading sample images...")
                 );
-                SampleImageService.getInstance().initialize();
+                sampleImageService.initialize();
 
                 // 2. Load FFMPEG binary
                 Platform.runLater(() ->
@@ -103,7 +106,7 @@ public class Main extends Application {
                 Platform.runLater(() ->
                         splashController.updateProgress(0.75, "Loading additional resources...")
                 );
-                VideoCuttingService.getInstance().initialize();
+                VideoCuttingServiceImpl.getInstance().initialize();
             } catch (Throwable e) {
                 LOGGER.error("Error loading application", e);
                 Platform.runLater(() -> {
@@ -131,7 +134,6 @@ public class Main extends Application {
         loadingThread.start();
     }
 
-
     /**
      * Initializes the root layout.
      */
@@ -147,10 +149,12 @@ public class Main extends Application {
         // Show the scene containing the root layout.
         Scene scene = new Scene(rootLayout, 1000, 600);
         scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/style/application.css")).toExternalForm());
-        primaryStage.setOnCloseRequest(event -> {
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             DBConnectionUtil.shutdown();
-            VideoCuttingService.getInstance().shutdown();
-        });
+            videoCuttingService.shutdown();
+            Platform.exit();
+        }));
 
         // Get the visual bounds of the primary screen (excludes taskbar)
         Rectangle2D visualBounds = Screen.getPrimary().getVisualBounds();

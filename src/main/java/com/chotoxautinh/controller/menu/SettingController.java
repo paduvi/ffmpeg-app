@@ -1,9 +1,9 @@
 package com.chotoxautinh.controller.menu;
 
 import com.chotoxautinh.conf.AppConfig;
+import com.chotoxautinh.conf.Constants;
 import com.chotoxautinh.controller.AbstractController;
 import com.chotoxautinh.model.AudioCodec;
-import com.chotoxautinh.model.Constants;
 import com.chotoxautinh.model.Preset;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;

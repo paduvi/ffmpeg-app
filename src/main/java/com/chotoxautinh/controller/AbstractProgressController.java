@@ -1,7 +1,7 @@
 package com.chotoxautinh.controller;
 
 import com.chotoxautinh.conf.AppConfig;
-import com.chotoxautinh.model.Constants;
+import com.chotoxautinh.conf.Constants;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;

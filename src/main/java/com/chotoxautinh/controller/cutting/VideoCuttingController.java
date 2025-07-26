@@ -1,23 +1,29 @@
 package com.chotoxautinh.controller.cutting;
 
 import com.chotoxautinh.conf.AppConfig;
+import com.chotoxautinh.conf.Constants;
 import com.chotoxautinh.controller.AbstractController;
-import com.chotoxautinh.model.Constants;
 import com.chotoxautinh.model.SampleImage;
 import com.chotoxautinh.model.Video;
 import com.chotoxautinh.service.SampleImageService;
+import com.chotoxautinh.service.impl.SampleImageServiceImpl;
 import com.chotoxautinh.util.AppUtil;
 import com.chotoxautinh.util.PythonUtil;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +40,7 @@ import java.util.prefs.Preferences;
 public class VideoCuttingController extends AbstractController {
     private static final Logger LOGGER = LoggerFactory.getLogger(VideoCuttingController.class);
     private final Preferences prefs = Preferences.userNodeForPackage(AppConfig.class);
+    private final SampleImageService sampleImageService = SampleImageServiceImpl.getInstance();
 
     @FXML
     private AnchorPane overlay;
@@ -62,13 +69,13 @@ public class VideoCuttingController extends AbstractController {
     @FXML
     private TableColumn<SampleImage, Void> sampleImageActionColumn;
 
-    private final SampleImageService sampleImageService = SampleImageService.getInstance();
+    private String sampleImagePath;
     private final ObservableList<SampleImage> sampleImageData = FXCollections.observableArrayList();
     private final ObservableList<Video> videoData = FXCollections.observableArrayList();
-    private final ToggleGroup toggleGroup = new ToggleGroup();
 
     @FXML
     private void initialize() throws IOException, URISyntaxException, InterruptedException, SQLException {
+        final ToggleGroup toggleGroup = new ToggleGroup();
         if (PythonUtil.isPythonAvailable()) {
             overlay.setVisible(true);
         }
@@ -186,11 +193,7 @@ public class VideoCuttingController extends AbstractController {
             if (Objects.equals(String.valueOf(sampleImage.getId()), selectedId)) {
                 sampleImage.setSelected(true);
                 sampleImage.setDeleteVisible(false);
-                if (sampleImage.isPermanent()) {
-                    previewImg.setImage(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/img/" + sampleImage.getName()))));
-                } else {
-                    previewImg.setImage(new Image("file:" + sampleImage.getPath().replace("\\", "/")));
-                }
+                setSelectedImage(sampleImage);
             }
         }
     }
@@ -205,14 +208,20 @@ public class VideoCuttingController extends AbstractController {
             r.setDeleteVisible(!isSelected);
 
             if (isSelected) {
-                if (r.isPermanent()) {
-                    previewImg.setImage(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/img/" + r.getName()))));
-                } else {
-                    previewImg.setImage(new Image("file:" + r.getPath().replace("\\", "/")));
+                try {
+                    setSelectedImage(r);
+                } catch (URISyntaxException e) {
+                    LOGGER.error("Error setSelectedImage: {}", e.getMessage(), e);
+                    AppUtil.alertError(e);
                 }
             }
         }
         sampleImageTableView.refresh();
+    }
+
+    private void setSelectedImage(SampleImage sampleImage) throws URISyntaxException {
+        previewImg.setImage(new Image("file:" + sampleImage.getPath().replace("\\", "/")));
+        sampleImagePath = sampleImage.getPath();
     }
 
     @FXML
@@ -319,12 +328,33 @@ public class VideoCuttingController extends AbstractController {
             alert.showAndWait();
             return;
         }
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("In development");
-        alert.setHeaderText(null);
-        alert.setContentText("Coming soon...");
+        try {
+            // Load the fxml file and create a new stage for the popup.
+            FXMLLoader loader = new FXMLLoader();
+            loader.setLocation(getClass().getResource("/view/ProgressLayout.fxml"));
 
-        alert.showAndWait();
+            CuttingProgressController controller = new CuttingProgressController();
+            loader.setController(controller);
+
+            VBox progress = loader.load();
+            Stage dialogStage = new Stage();
+            dialogStage.setTitle("Processing...");
+            dialogStage.initModality(Modality.APPLICATION_MODAL);
+            dialogStage.initOwner(getStage());
+            Scene scene = new Scene(progress);
+            scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/style/application.css")).toExternalForm());
+            dialogStage.setScene(scene);
+
+            // Set the videos into the controller.
+            controller.setStage(dialogStage);
+            LOGGER.info("Sample Image Path: {}", sampleImagePath);
+            controller.setVideos(list, sampleImagePath);
+
+            dialogStage.show();
+        } catch (IOException e) {
+            LOGGER.error("Error handleCut: {}", e.getMessage(), e);
+            AppUtil.alertError(e);
+        }
     }
 
     private void loadVideoDataFromFiles(List<File> files) {
