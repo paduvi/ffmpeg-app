@@ -22,6 +22,7 @@ We can manually create a custom runtime image and build the package afterward.
 ```
 # Set the path to JavaFX jmods
 export PATH_TO_FX_MODS=path/to/javafx-jmods
+export APP_VERSION=1.0.1
 
 # Create a custom runtime image
 jlink \
@@ -38,9 +39,9 @@ jpackage --type $type \
   --main-class com.chotoxautinh.Main \
   --java-options "-Xmx2048m -Dbranch=main" \
   --runtime-image jre \
-  --app-version 1.0.0 \
+  --app-version $APP_VERSION \
   --vendor "Dogy Inc." \
-  --copyright "Copyright © 2016-25 Dogy Inc." \
+  --copyright "Copyright © 2016-$(date +%y) Dogy Inc." \
   --mac-package-name "DogyMpegApp" \
   --mac-package-identifier com.chotoxautinh \
   --icon src/main/resources/icon.icns \
@@ -68,6 +69,7 @@ To use `exe` and `msi` options, you need to install [WiX Toolset](https://github
 ```
 # Set the path to JavaFX jmods
 $env:PATH_TO_FX_MODS="path/to/javafx-jmods"
+$env:APP_VERSION="1.0.1"
 
 # Create a custom runtime image
 jlink --module-path "$env:JAVA_HOME\jmods;$env:PATH_TO_FX_MODS" `
@@ -85,12 +87,18 @@ foreach ($T in $TYPES) {
         --java-options "-Xmx2048m -Dbranch=main" `
         --runtime-image jre `
         --icon "src\main\resources\icon.ico" `
-        --app-version "1.0.0" `
+        --app-version "$env:APP_VERSION" `
         --vendor "Dogy Inc." `
-        --copyright "Copyright © 2016-25 Dogy Inc." `
+        --copyright "Copyright © 2016-$((Get-Date).Year.ToString().Substring(2)) Dogy Inc." `
         --dest dist/jpackage/win
 }
 ```
 
 **For CUDA support (if you have an NVIDIA GPU):**
-You can pass the CUDA version in the jpackage command like this: `--java-options "-Xmx2048m -Dbranch=main -Dcuda=12.8"`
+
+You can pass the CUDA version in the jpackage command like this: `--java-options "-Xmx2048m -Dbranch=main -Dcuda=12.8"`.
+
+List of CUDA versions Pytorch is supporting:
+- 11.8
+- 12.6
+- 12.8
