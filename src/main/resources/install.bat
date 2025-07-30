@@ -7,7 +7,7 @@ set "CUDA_VERSION="
 :parse_args
 if "%~1"=="" goto setup
 
-:: Handle split format: cuda 12.8
+:: Handle split format: cuda 12.4
 if /i "%~1"=="cuda" (
     if not "%~2"=="" (
         set "CUDA_VERSION=%~2"
@@ -29,12 +29,12 @@ if exist "requirements.txt.template" (
         echo --extra-index-url https://download.pytorch.org/whl/cu118 > requirements.txt
         echo. >> requirements.txt
         type requirements.txt.template >> requirements.txt
-    ) else if "%CUDA_VERSION%"=="12.6" (
-        echo --extra-index-url https://download.pytorch.org/whl/cu126 > requirements.txt
+    ) else if "%CUDA_VERSION%"=="12.1" (
+        echo --extra-index-url https://download.pytorch.org/whl/cu121 > requirements.txt
         echo. >> requirements.txt
         type requirements.txt.template >> requirements.txt
-    ) else if "%CUDA_VERSION%"=="12.8" (
-        echo --extra-index-url https://download.pytorch.org/whl/cu128 > requirements.txt
+    ) else if "%CUDA_VERSION%"=="12.4" (
+        echo --extra-index-url https://download.pytorch.org/whl/cu124 > requirements.txt
         echo. >> requirements.txt
         type requirements.txt.template >> requirements.txt
     ) else (

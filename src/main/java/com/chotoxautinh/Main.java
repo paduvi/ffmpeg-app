@@ -7,9 +7,9 @@ import com.chotoxautinh.controller.SplashController;
 import com.chotoxautinh.service.VideoCuttingService;
 import com.chotoxautinh.service.impl.SampleImageServiceImpl;
 import com.chotoxautinh.service.impl.VideoCuttingServiceImpl;
-import com.chotoxautinh.util.AppUtil;
-import com.chotoxautinh.util.DBConnectionUtil;
-import com.chotoxautinh.util.PythonUtil;
+import com.chotoxautinh.util.AppUtils;
+import com.chotoxautinh.util.DBConnectionUtils;
+import com.chotoxautinh.util.PythonUtils;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
@@ -18,14 +18,14 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import lombok.extern.slf4j.Slf4j;
 import org.bytedeco.javacpp.Loader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.io.File;
@@ -34,8 +34,8 @@ import java.net.URI;
 import java.util.Objects;
 import java.util.logging.LogManager;
 
+@Slf4j
 public class Main extends Application {
-    private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
     private Stage primaryStage;
     private final VideoCuttingService videoCuttingService = VideoCuttingServiceImpl.getInstance();
     private final SampleImageServiceImpl sampleImageService = SampleImageServiceImpl.getInstance();
@@ -64,21 +64,21 @@ public class Main extends Application {
             try {
                 // 1. Load sample images
                 Platform.runLater(() ->
-                        splashController.updateProgress(0, "Loading sample images...")
+                        splashController.updateProgress(ProgressBar.INDETERMINATE_PROGRESS, "Loading sample images...")
                 );
                 sampleImageService.initialize();
 
                 // 2. Load FFMPEG binary
                 Platform.runLater(() ->
-                        splashController.updateProgress(0.25, "Loading built-in FFMPEG binary...")
+                        splashController.updateProgress(ProgressBar.INDETERMINATE_PROGRESS, "Loading built-in FFMPEG binary...")
                 );
                 Loader.load(org.bytedeco.ffmpeg.ffmpeg.class);
 
                 // 3. Load FFMPEG binary
                 Platform.runLater(() ->
-                        splashController.updateProgress(0.5, "Checking Python binary availability...")
+                        splashController.updateProgress(ProgressBar.INDETERMINATE_PROGRESS, "Checking Python binary availability...")
                 );
-                if (PythonUtil.isPythonAvailable()) {
+                if (PythonUtils.isPythonAvailable()) {
                     Platform.runLater(() -> {
                         splashStage.close();
 
@@ -90,9 +90,9 @@ public class Main extends Application {
                         alert.showAndWait().ifPresent(response -> {
                             if (response == ButtonType.YES) {
                                 try {
-                                    Desktop.getDesktop().browse(new URI(PythonUtil.getDownloadUrlByOS()));
+                                    Desktop.getDesktop().browse(new URI(PythonUtils.getDownloadUrlByOS()));
                                 } catch (Exception e) {
-                                    LOGGER.error("Error opening browser", e);
+                                    log.error("Error opening browser", e);
                                 }
                             }
                             Platform.exit();
@@ -100,18 +100,18 @@ public class Main extends Application {
                     });
                     return;
                 }
-                LOGGER.info("Python is already available.");
+                log.info("Python is already available.");
 
                 // 4. Load video cutting resources
                 Platform.runLater(() ->
-                        splashController.updateProgress(0.75, "Loading additional resources...")
+                        splashController.updateProgress(ProgressBar.INDETERMINATE_PROGRESS, "Loading additional resources...")
                 );
                 VideoCuttingServiceImpl.getInstance().initialize();
             } catch (Throwable e) {
-                LOGGER.error("Error loading application", e);
+                log.error("Error loading application", e);
                 Platform.runLater(() -> {
                     splashStage.close();
-                    AppUtil.alertError(e);
+                    AppUtils.alertError(e);
                     Platform.exit();
                 });
                 return;
@@ -123,9 +123,9 @@ public class Main extends Application {
                     initRootLayout();
                     splashStage.close();
                 } catch (Throwable e) {
-                    LOGGER.error("Error initRootLayout", e);
+                    log.error("Error initRootLayout", e);
                     splashStage.close();
-                    AppUtil.alertError(e);
+                    AppUtils.alertError(e);
                     Platform.exit();
                 }
             });
@@ -151,7 +151,7 @@ public class Main extends Application {
         scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/style/application.css")).toExternalForm());
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            DBConnectionUtil.shutdown();
+            DBConnectionUtils.shutdown();
             videoCuttingService.shutdown();
             Platform.exit();
         }));
@@ -181,15 +181,15 @@ public class Main extends Application {
             LogManager.getLogManager()
                     .readConfiguration(Main.class.getResourceAsStream("/logging.properties"));
             if (created) {
-                LOGGER.info("Logs directory created: {}", logDir.getAbsolutePath());
+                log.info("Logs directory created: {}", logDir.getAbsolutePath());
             } else {
-                LOGGER.info("Logs directory already exists: {}", logDir.getAbsolutePath());
+                log.info("Logs directory already exists: {}", logDir.getAbsolutePath());
             }
 
             launch(args);
         } catch (Exception e) {
-            LOGGER.error("Error launching application", e);
-            AppUtil.alertError(e);
+            log.error("Error launching application", e);
+            AppUtils.alertError(e);
             Platform.exit();
         }
     }

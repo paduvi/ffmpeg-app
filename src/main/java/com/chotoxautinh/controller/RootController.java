@@ -3,7 +3,7 @@ package com.chotoxautinh.controller;
 import com.chotoxautinh.conf.AppConfig;
 import com.chotoxautinh.controller.menu.SettingController;
 import com.chotoxautinh.model.MenuSection;
-import com.chotoxautinh.util.AppUtil;
+import com.chotoxautinh.util.AppUtils;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -103,7 +103,7 @@ public class RootController extends AbstractController implements Initializable 
             contentArea.getChildren().add(content);
         } catch (Exception e) {
             LOGGER.error("Error loading layout: {}", section.getLabel(), e);
-            AppUtil.alertError("Error loading layout: " + section.getLabel());
+            AppUtils.alertError("Error loading layout: " + section.getLabel());
         }
     }
 
@@ -161,7 +161,7 @@ public class RootController extends AbstractController implements Initializable 
             dialogStage.show();
         } catch (IOException e) {
             LOGGER.error("Error handleSettingAction: {}", e.getMessage(), e);
-            AppUtil.alertError("Error handleSettingAction: " + e.getMessage());
+            AppUtils.alertError("Error handleSettingAction: " + e.getMessage());
         }
     }
 

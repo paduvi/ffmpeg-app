@@ -8,3 +8,5 @@ dist/
 .idea/
 jre/
 logs/
+
+src/test/resources/

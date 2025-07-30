@@ -9,16 +9,15 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ProgressBar;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 
+@Slf4j
 public class CuttingProgressController extends AbstractProgressController {
-    private static final Logger LOGGER = LoggerFactory.getLogger(CuttingProgressController.class);
     private static final Object LOCK = new Object();
 
     private double progressValue;
@@ -73,7 +72,7 @@ public class CuttingProgressController extends AbstractProgressController {
             };
 
             task.setOnFailed(event -> {
-                LOGGER.error("Error cutting video: ", event.getSource().getException());
+                log.error("Error cutting video: ", event.getSource().getException());
 
                 setRunning(false);
                 handleCancel();

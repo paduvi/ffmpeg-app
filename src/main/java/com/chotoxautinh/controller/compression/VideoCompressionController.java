@@ -2,7 +2,7 @@ package com.chotoxautinh.controller.compression;
 
 import com.chotoxautinh.controller.AbstractController;
 import com.chotoxautinh.model.Video;
-import com.chotoxautinh.util.AppUtil;
+import com.chotoxautinh.util.AppUtils;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -16,8 +16,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,9 +25,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
+@Slf4j
 public class VideoCompressionController extends AbstractController {
-    private static final Logger LOGGER = LoggerFactory.getLogger(VideoCompressionController.class);
-
     @FXML
     private TableView<Video> tableView;
     @FXML
@@ -164,8 +162,8 @@ public class VideoCompressionController extends AbstractController {
 
             dialogStage.show();
         } catch (IOException e) {
-            LOGGER.error("Error handleConvert: {}", e.getMessage(), e);
-            AppUtil.alertError(e);
+            log.error("Error handleConvert: {}", e.getMessage(), e);
+            AppUtils.alertError(e);
         }
     }
 

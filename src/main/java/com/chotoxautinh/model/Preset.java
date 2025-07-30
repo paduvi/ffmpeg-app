@@ -1,5 +1,8 @@
 package com.chotoxautinh.model;
 
+import lombok.Getter;
+
+@Getter
 public enum Preset {
     ULTRAFAST("Ultra Fast", "ultrafast"),
     SUPERFAST("Super Fast", "superfast"),
@@ -9,8 +12,7 @@ public enum Preset {
     MEDIUM("Medium", "medium"),
     SLOW("Slow", "slow"),
     SLOWER("Slower", "slower"),
-    VERYSLOW("Very Slow", "veryslow"),
-    ;
+    VERYSLOW("Very Slow", "veryslow");
 
     private final String label;
     private final String value;
@@ -18,14 +20,6 @@ public enum Preset {
     Preset(String label, String value) {
         this.label = label;
         this.value = value;
-    }
-
-    public String getLabel() {
-        return label;
-    }
-
-    public String getValue() {
-        return value;
     }
 
     // Get value from label

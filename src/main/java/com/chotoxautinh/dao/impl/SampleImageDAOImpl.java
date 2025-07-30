@@ -2,9 +2,8 @@ package com.chotoxautinh.dao.impl;
 
 import com.chotoxautinh.dao.SampleImageDAO;
 import com.chotoxautinh.model.SampleImage;
-import com.chotoxautinh.util.DBConnectionUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.chotoxautinh.util.DBConnectionUtils;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -12,14 +11,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+@Slf4j
 public class SampleImageDAOImpl implements SampleImageDAO {
-    private static final Logger LOGGER = LoggerFactory.getLogger(SampleImageDAOImpl.class);
     private static final String TABLE_NAME = "sample_images"; // Centralized table name constant
     private final DataSource dataSource;
 
     // Private constructor to prevent direct instantiation
     private SampleImageDAOImpl() {
-        this.dataSource = DBConnectionUtil.getDataSource();
+        this.dataSource = DBConnectionUtils.getDataSource();
     }
 
     private static final class SampleImageDAOHolder {
@@ -38,7 +37,7 @@ public class SampleImageDAOImpl implements SampleImageDAO {
             // Check if the table exists
             try (ResultSet resultSet = meta.getTables(connection.getCatalog(), null, TABLE_NAME.toUpperCase(), new String[]{"TABLE"})) {
                 if (resultSet.next()) {
-                    LOGGER.info("Table '" + TABLE_NAME + "' already exists, skipping creation.");
+                    log.info("Table '" + TABLE_NAME + "' already exists, skipping creation.");
                     return false;
                 }
             }
@@ -54,7 +53,7 @@ public class SampleImageDAOImpl implements SampleImageDAO {
                     """, TABLE_NAME);
             try (PreparedStatement statement = connection.prepareStatement(createTableSQL)) {
                 statement.execute();
-                LOGGER.info("Table '" + TABLE_NAME + "' created successfully");
+                log.info("Table '" + TABLE_NAME + "' created successfully");
                 return true;
             }
         }
@@ -70,13 +69,13 @@ public class SampleImageDAOImpl implements SampleImageDAO {
             pstmt.setBoolean(2, sampleImage.isPermanent());
             pstmt.setString(3, sampleImage.getPath());
             pstmt.executeUpdate();
-            LOGGER.info("Image data saved to database for: {}", sampleImage.getName());
+            log.info("Image data saved to database for: {}", sampleImage.getName());
 
             // Retrieve the generated ID
             try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
                     int id = generatedKeys.getInt(1);
-                    LOGGER.info("Generated ID: {}", id);
+                    log.info("Generated ID: {}", id);
                     return sampleImage.setId(id);
                 }
             }
@@ -115,9 +114,9 @@ public class SampleImageDAOImpl implements SampleImageDAO {
             preparedStatement.setInt(1, sampleImage.getId());
             int rowsDeleted = preparedStatement.executeUpdate();
             if (rowsDeleted > 0) {
-                LOGGER.info("Image data deleted from database for: {}", sampleImage.getName());
+                log.info("Image data deleted from database for: {}", sampleImage.getName());
             } else {
-                LOGGER.warn("No record found in database for image: {}", sampleImage.getName());
+                log.warn("No record found in database for image: {}", sampleImage.getName());
             }
         }
     }

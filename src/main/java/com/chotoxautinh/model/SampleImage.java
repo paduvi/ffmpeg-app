@@ -4,11 +4,16 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import lombok.Getter;
 
 public class SampleImage {
+    @Getter
     private Integer id;
+    @Getter
     private final String name;
+    @Getter
     private final boolean permanent;
+    @Getter
     private final String path;
     private final BooleanProperty selected = new SimpleBooleanProperty(false);
     private final BooleanProperty deleteVisible = new SimpleBooleanProperty(true);
@@ -24,22 +29,6 @@ public class SampleImage {
         this.name = name;
         this.permanent = permanent;
         this.path = path;
-    }
-
-    public Integer getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public boolean isPermanent() {
-        return permanent;
-    }
-
-    public String getPath() {
-        return path;
     }
 
     public SampleImage setId(Integer id) {

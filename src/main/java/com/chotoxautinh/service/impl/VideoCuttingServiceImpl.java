@@ -2,15 +2,14 @@ package com.chotoxautinh.service.impl;
 
 import com.chotoxautinh.conf.Constants;
 import com.chotoxautinh.service.VideoCuttingService;
-import com.chotoxautinh.util.AppUtil;
-import com.chotoxautinh.util.PythonUtil;
+import com.chotoxautinh.util.AppUtils;
+import com.chotoxautinh.util.PythonUtils;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.URISyntaxException;
@@ -20,15 +19,14 @@ import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.Objects;
 
+@Slf4j
 public class VideoCuttingServiceImpl implements VideoCuttingService {
-    private static final Logger LOGGER = LoggerFactory.getLogger(VideoCuttingServiceImpl.class);
-
     private static final String REMOTE_URL = "https://github.com/paduvi/dogy-image-similarity.git";
     private static final String LOCAL_DIR = Constants.DATA_PATH + File.separator + "dogy-image-similarity";
     private static final String BRANCH = System.getProperty("branch", "dev");
 
     private static final String HOST = "localhost";
-    private static final int PORT = AppUtil.getAvailablePort();
+    private static final int PORT = AppUtils.getAvailablePort();
     private Process pythonServerProcess;
 
     // Private constructor to prevent direct instantiation
@@ -68,7 +66,7 @@ public class VideoCuttingServiceImpl implements VideoCuttingService {
                     "query_image": "%s"
                 }
                 """, videoPath.replace("\\", "/"), queryImage.replace("\\", "/"));
-        LOGGER.info("Query chosen time: {}", json);
+        log.info("Query chosen time: {}", json);
         RequestBody body = RequestBody.create(json, MediaType.get("application/json"));
 
         Request request = new Request.Builder()
@@ -98,7 +96,7 @@ public class VideoCuttingServiceImpl implements VideoCuttingService {
                     "start_time": %f
                 }
                 """, inputPath.replace("\\", "/"), outputPath.replace("\\", "/"), startTime);
-        LOGGER.info("Cut video: {}", json);
+        log.info("Cut video: {}", json);
         RequestBody body = RequestBody.create(json, MediaType.get("application/json"));
 
         Request request = new Request.Builder()
@@ -115,7 +113,7 @@ public class VideoCuttingServiceImpl implements VideoCuttingService {
     }
 
     private void startPythonServer() throws IOException {
-        pythonServerProcess = PythonUtil.runPython(Path.of(LOCAL_DIR), "main.py", "--port", String.valueOf(PORT));
+        pythonServerProcess = PythonUtils.runPython(Path.of(LOCAL_DIR), "main.py", "--port", String.valueOf(PORT));
         waitForServer("http://" + HOST + ":" + PORT + "/api/echo", Duration.ofSeconds(10).toMillis());
     }
 
@@ -139,12 +137,12 @@ public class VideoCuttingServiceImpl implements VideoCuttingService {
 
                 try (Response response = client.newCall(request).execute()) {
                     if (response.isSuccessful()) {
-                        LOGGER.info("✅ Python server is ready: {}", Objects.requireNonNull(response.body()).string());
+                        log.info("✅ Python server is ready: {}", Objects.requireNonNull(response.body()).string());
                         return;
                     }
                 }
             } catch (Exception e) {
-                LOGGER.warn("⏳ Not ready... will try again");
+                log.warn("⏳ Not ready... will try again");
             }
 
             try {
@@ -160,25 +158,25 @@ public class VideoCuttingServiceImpl implements VideoCuttingService {
         File localPath = new File(LOCAL_DIR);
 
         if (!localPath.exists()) {
-            LOGGER.info("Local directory doesn't exist. Cloning from branch {}...", BRANCH);
+            log.info("Local directory doesn't exist. Cloning from branch {}...", BRANCH);
             CloneCommand clone = Git.cloneRepository()
                     .setURI(REMOTE_URL)
                     .setDirectory(localPath)
                     .setBranch(BRANCH);
 
             try (Git ignored = clone.call()) {
-                LOGGER.info("Cloned repository to {}", localPath.getAbsolutePath());
+                log.info("Cloned repository to {}", localPath.getAbsolutePath());
             }
             return;
         }
-        LOGGER.info("Local directory exists. Checking for updates...");
+        log.info("Local directory exists. Checking for updates...");
         try (Git git = Git.open(localPath)) {
             PullResult result = git.pull().call();
 
             if (result.isSuccessful()) {
-                LOGGER.info("Pull successful. Updating local repository...");
+                log.info("Pull successful. Updating local repository...");
             } else {
-                LOGGER.warn("Pull failed.");
+                log.warn("Pull failed.");
             }
         } catch (Throwable e) {
             Files.deleteIfExists(localPath.toPath());
@@ -188,7 +186,7 @@ public class VideoCuttingServiceImpl implements VideoCuttingService {
 
     private void installDependencies() throws IOException, InterruptedException {
         String cuda = System.getProperty("cuda", "cpu");
-        LOGGER.info("Installing dependencies with CUDA: {}", cuda);
+        log.info("Installing dependencies with CUDA: {}", cuda);
         Process process;
         if (System.getProperty("os.name").toLowerCase().contains("win")) {
             // 1. Read install.bat from resources
@@ -208,17 +206,17 @@ public class VideoCuttingServiceImpl implements VideoCuttingService {
             processBuilder.directory(new File(LOCAL_DIR));
             processBuilder.redirectErrorStream(true);
 
-            LOGGER.info(String.join(" ", processBuilder.command().toArray(new String[0])));
+            log.info(String.join(" ", processBuilder.command().toArray(new String[0])));
 
             process = processBuilder.start();
         } else if (new File(LOCAL_DIR + File.separator + ".venv").exists()) {
-            LOGGER.info("Virtual environment exists. Just update dependencies...");
+            log.info("Virtual environment exists. Just update dependencies...");
             ProcessBuilder processBuilder = new ProcessBuilder(LOCAL_DIR + File.separator + "update.sh");
             processBuilder.directory(new File(LOCAL_DIR));
             processBuilder.redirectErrorStream(true);
             process = processBuilder.start();
         } else {
-            LOGGER.info("Virtual environment doesn't exist. Creating new one...");
+            log.info("Virtual environment doesn't exist. Creating new one...");
 
             ProcessBuilder processBuilder = new ProcessBuilder(LOCAL_DIR + File.separator + "install.sh", "cuda=" + cuda);
             processBuilder.directory(new File(LOCAL_DIR));
@@ -239,7 +237,7 @@ public class VideoCuttingServiceImpl implements VideoCuttingService {
             }
         }
 
-        LOGGER.info("Process exited with code: {}", exitCode);
+        log.info("Process exited with code: {}", exitCode);
         if (exitCode != 0) {
             throw new RuntimeException("Process exited with code: " + exitCode);
         }
@@ -252,11 +250,11 @@ public class VideoCuttingServiceImpl implements VideoCuttingService {
 
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    LOGGER.info("[script] {}", line);
+                    log.info("[script] {}", line);
                 }
 
             } catch (IOException e) {
-                LOGGER.error("Error reading process output", e);
+                log.error("Error reading process output", e);
                 throw new RuntimeException(e);
             }
         });

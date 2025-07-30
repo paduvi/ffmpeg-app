@@ -1,5 +1,8 @@
 package com.chotoxautinh.model;
 
+import lombok.Getter;
+
+@Getter
 public enum MenuSection {
     VIDEO_COMPRESSION("Size Reduction", "VideoCompressionLayout.fxml"),
     VIDEO_CUTTING("Frame Cut", "VideoCuttingLayout.fxml");
@@ -11,13 +14,5 @@ public enum MenuSection {
     MenuSection(String label, String fxmlPath) {
         this.label = label;
         this.fxmlPath = fxmlPath;
-    }
-
-    public String getLabel() {
-        return label;
-    }
-
-    public String getFxmlPath() {
-        return fxmlPath;
     }
 }

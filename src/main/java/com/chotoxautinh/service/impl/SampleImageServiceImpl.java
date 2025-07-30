@@ -5,8 +5,7 @@ import com.chotoxautinh.conf.Constants;
 import com.chotoxautinh.dao.impl.SampleImageDAOImpl;
 import com.chotoxautinh.model.SampleImage;
 import com.chotoxautinh.service.SampleImageService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,8 +20,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.prefs.Preferences;
 
+@Slf4j
 public class SampleImageServiceImpl implements SampleImageService {
-    private static final Logger LOGGER = LoggerFactory.getLogger(SampleImageServiceImpl.class);
     private final SampleImageDAOImpl sampleImageDAO = SampleImageDAOImpl.getInstance();
     private final Preferences prefs = Preferences.userNodeForPackage(AppConfig.class);
 
@@ -42,18 +41,18 @@ public class SampleImageServiceImpl implements SampleImageService {
     public void initialize() throws SQLException {
         boolean firstCreation = sampleImageDAO.initialize();
         if (firstCreation) {
-            LOGGER.info("Database created successfully");
+            log.info("Database created successfully");
             SampleImage sampleImage = sampleImageDAO.save(new SampleImage("sample.png", true, ""));
             prefs.put(Constants.SAMPLE_IMAGE_KEY, String.valueOf(sampleImage.getId()));
 
             // Print all current records
             List<SampleImage> images = sampleImageDAO.listAll();
-            LOGGER.info("Current SampleImage records in table:");
+            log.info("Current SampleImage records in table:");
             for (SampleImage image : images) {
-                LOGGER.info("ID: {}, Name: {}, Path: {}, isPermanent: {}", image.getId(), image.getName(), image.getPath(), image.isPermanent());
+                log.info("ID: {}, Name: {}, Path: {}, isPermanent: {}", image.getId(), image.getName(), image.getPath(), image.isPermanent());
             }
         } else {
-            LOGGER.info("Database already exists, skipping creation");
+            log.info("Database already exists, skipping creation");
         }
     }
 
@@ -72,7 +71,7 @@ public class SampleImageServiceImpl implements SampleImageService {
         String uniqueFileName = UUID.randomUUID() + fileExtension;
         Path destinationPath = destinationDir.resolve(uniqueFileName);
         Files.copy(imageFile.toPath(), destinationPath, StandardCopyOption.REPLACE_EXISTING);
-        LOGGER.info("Image saved to: {}", destinationPath);
+        log.info("Image saved to: {}", destinationPath);
 
         return sampleImageDAO.save(new SampleImage(imageFile.getName(), false, destinationPath.toString()));
     }
@@ -109,13 +108,13 @@ public class SampleImageServiceImpl implements SampleImageService {
     @Override
     public void deleteImageIfNotPermanent(SampleImage sampleImage) throws SQLException, IOException {
         if (sampleImage.isPermanent()) {
-            LOGGER.warn("Image is permanent, cannot be deleted: {}", sampleImage.getName());
+            log.warn("Image is permanent, cannot be deleted: {}", sampleImage.getName());
             return;
         }
         Path imagePath = Paths.get(sampleImage.getPath());
         if (Files.exists(imagePath)) {
             Files.delete(imagePath);
-            LOGGER.info("Image deleted: {}", sampleImage.getName());
+            log.info("Image deleted: {}", sampleImage.getName());
         }
         sampleImageDAO.delete(sampleImage);
     }

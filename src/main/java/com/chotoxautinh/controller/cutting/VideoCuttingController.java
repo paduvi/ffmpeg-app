@@ -7,8 +7,8 @@ import com.chotoxautinh.model.SampleImage;
 import com.chotoxautinh.model.Video;
 import com.chotoxautinh.service.SampleImageService;
 import com.chotoxautinh.service.impl.SampleImageServiceImpl;
-import com.chotoxautinh.util.AppUtil;
-import com.chotoxautinh.util.PythonUtil;
+import com.chotoxautinh.util.AppUtils;
+import com.chotoxautinh.util.PythonUtils;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -24,8 +24,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,8 +36,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.prefs.Preferences;
 
+@Slf4j
 public class VideoCuttingController extends AbstractController {
-    private static final Logger LOGGER = LoggerFactory.getLogger(VideoCuttingController.class);
     private final Preferences prefs = Preferences.userNodeForPackage(AppConfig.class);
     private final SampleImageService sampleImageService = SampleImageServiceImpl.getInstance();
 
@@ -76,7 +75,7 @@ public class VideoCuttingController extends AbstractController {
     @FXML
     private void initialize() throws IOException, URISyntaxException, InterruptedException, SQLException {
         final ToggleGroup toggleGroup = new ToggleGroup();
-        if (PythonUtil.isPythonAvailable()) {
+        if (PythonUtils.isPythonAvailable()) {
             overlay.setVisible(true);
         }
 
@@ -149,8 +148,8 @@ public class VideoCuttingController extends AbstractController {
                         sampleImageService.deleteImageIfNotPermanent(row);
                         sampleImageData.remove(row);
                     } catch (SQLException | IOException ex) {
-                        LOGGER.error("Error sampleImageService.deleteImageIfNotPermanent: {}", ex.getMessage(), ex);
-                        AppUtil.alertError(ex);
+                        log.error("Error sampleImageService.deleteImageIfNotPermanent: {}", ex.getMessage(), ex);
+                        AppUtils.alertError(ex);
                     }
                 });
 
@@ -211,8 +210,8 @@ public class VideoCuttingController extends AbstractController {
                 try {
                     setSelectedImage(r);
                 } catch (URISyntaxException e) {
-                    LOGGER.error("Error setSelectedImage: {}", e.getMessage(), e);
-                    AppUtil.alertError(e);
+                    log.error("Error setSelectedImage: {}", e.getMessage(), e);
+                    AppUtils.alertError(e);
                 }
             }
         }
@@ -247,8 +246,8 @@ public class VideoCuttingController extends AbstractController {
                     SampleImage sampleImage = sampleImageService.saveImage(file);
                     sampleImageData.add(sampleImage);
                 } catch (SQLException | IOException ex) {
-                    LOGGER.error("Error sampleImageService.saveImage: {}", ex.getMessage(), ex);
-                    AppUtil.alertError(ex);
+                    log.error("Error sampleImageService.saveImage: {}", ex.getMessage(), ex);
+                    AppUtils.alertError(ex);
                 }
             }
         }
@@ -347,13 +346,13 @@ public class VideoCuttingController extends AbstractController {
 
             // Set the videos into the controller.
             controller.setStage(dialogStage);
-            LOGGER.info("Sample Image Path: {}", sampleImagePath);
+            log.info("Sample Image Path: {}", sampleImagePath);
             controller.setVideos(list, sampleImagePath);
 
             dialogStage.show();
         } catch (IOException e) {
-            LOGGER.error("Error handleCut: {}", e.getMessage(), e);
-            AppUtil.alertError(e);
+            log.error("Error handleCut: {}", e.getMessage(), e);
+            AppUtils.alertError(e);
         }
     }
 

@@ -1,5 +1,8 @@
 package com.chotoxautinh.model;
 
+import lombok.Getter;
+
+@Getter
 public enum AudioCodec {
     AAC("AAC", "aac"),
     MP3("MP3", "libmp3lame"),
@@ -11,14 +14,6 @@ public enum AudioCodec {
     AudioCodec(String label, String value) {
         this.label = label;
         this.value = value;
-    }
-
-    public String getLabel() {
-        return label;
-    }
-
-    public String getValue() {
-        return value;
     }
 
     // Get value from label

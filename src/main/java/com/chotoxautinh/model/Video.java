@@ -1,6 +1,6 @@
 package com.chotoxautinh.model;
 
-import com.chotoxautinh.util.VideoUtil;
+import com.chotoxautinh.util.VideoUtils;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -23,12 +23,12 @@ public class Video {
         this.name = new SimpleStringProperty(p.getFileName().toString().replaceFirst("[.][^.]+$", ""));
         this.path = new SimpleStringProperty(file.getAbsolutePath());
         try {
-            this.type = new SimpleStringProperty(VideoUtil.getMimeType(file.getAbsolutePath()));
+            this.type = new SimpleStringProperty(VideoUtils.getMimeType(file.getAbsolutePath()));
         } catch (IOException e) {
             this.type = new SimpleStringProperty("Undetermined");
         }
-        this.size = new SimpleStringProperty(VideoUtil.defineSize(file.length()));
-        this.duration = new SimpleStringProperty(VideoUtil.getVideoDuration(file));
+        this.size = new SimpleStringProperty(VideoUtils.defineSize(file.length()));
+        this.duration = new SimpleStringProperty(VideoUtils.getVideoDurationInTimestamp(file));
         this.selected = new SimpleBooleanProperty(false);
     }
 

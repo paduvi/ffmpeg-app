@@ -9,8 +9,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.stage.Stage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.awt.*;
 import java.io.File;
@@ -24,9 +23,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.prefs.Preferences;
 
+@Slf4j
 public class AbstractProgressController extends AbstractController {
-    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractProgressController.class);
-
     private final Preferences prefs = Preferences.userNodeForPackage(AppConfig.class);
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 
@@ -58,7 +56,7 @@ public class AbstractProgressController extends AbstractController {
 
         boolean created = new File(path).mkdirs();
         if (created) {
-            LOGGER.info("Created folder: {}", path);
+            log.info("Created folder: {}", path);
         }
 
         containFolder = path;
@@ -96,7 +94,7 @@ public class AbstractProgressController extends AbstractController {
         try {
             Desktop.getDesktop().open(new File(this.getContainFolder()));
         } catch (IOException e) {
-            LOGGER.error("Error opening folder", e);
+            log.error("Error opening folder", e);
 
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle("Error");

@@ -11,9 +11,8 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ProgressBar;
+import lombok.extern.slf4j.Slf4j;
 import org.bytedeco.javacpp.Loader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -24,8 +23,8 @@ import java.util.prefs.Preferences;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Slf4j
 public class CompressionProgressController extends AbstractProgressController {
-    private static final Logger LOGGER = LoggerFactory.getLogger(CompressionProgressController.class);
     private final Preferences prefs = Preferences.userNodeForPackage(AppConfig.class);
 
     private static final Object LOCK = new Object();
@@ -123,7 +122,7 @@ public class CompressionProgressController extends AbstractProgressController {
             };
 
             task.setOnFailed(event -> {
-                LOGGER.error("Error running ffmpeg: ", event.getSource().getException());
+                log.error("Error running ffmpeg: ", event.getSource().getException());
 
                 setRunning(false);
                 handleCancel();

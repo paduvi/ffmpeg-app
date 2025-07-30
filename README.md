@@ -96,9 +96,9 @@ foreach ($T in $TYPES) {
 
 **For CUDA support (if you have an NVIDIA GPU):**
 
-You can pass the CUDA version in the jpackage command like this: `--java-options "-Xmx2048m -Dbranch=main -Dcuda=12.8"`.
+You can pass the CUDA version in the jpackage command like this: `--java-options "-Xmx2048m -Dbranch=main -Dcuda=12.4"`.
 
-List of CUDA versions Pytorch is supporting:
-- 11.8
-- 12.6
-- 12.8
+The list of CUDA options is supporting:
+- `-Dcuda=12.4`: version ≥ 12.4
+- `-Dcuda=12.1`: version ≥ 12.1
+- `-Dcuda=11.8`: version ≥ 11.8
