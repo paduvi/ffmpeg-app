@@ -29,10 +29,10 @@ public class VideoFeatureMatcher {
     private static final int BATCH_SIZE = 256;
     private static final int FRAME_WIDTH = 224;
     private static final int FRAME_HEIGHT = 224;
-    private static final int FRAME_SKIP = 30; // lấy mỗi 30 frame
+    private static final int FRAME_SKIP = 30; // sample each 30 frame
 
     public static void main(String[] args) throws Exception {
-        OpenCV.loadShared();
+        OpenCV.loadLocally();
 
         String videoPath = "src/test/resources/sample.mp4";
         String templatePath = "src/main/resources/img/sample.png";
@@ -102,27 +102,28 @@ public class VideoFeatureMatcher {
                 batchProcessing(batch, flatBuffer, env, session, templateVec, similarityMatrix);
             }
 
-            INDArray similarities = Nd4j.create(similarityMatrix.size());
-            for (int i = 0; i < similarityMatrix.size(); i++) {
-                similarities.putScalar(i, similarityMatrix.get(i));
-            }
+            try (INDArray similarities = Nd4j.create(similarityMatrix.size())) {
+                for (int i = 0; i < similarityMatrix.size(); i++) {
+                    similarities.putScalar(i, similarityMatrix.get(i));
+                }
 
-            Long endTime = System.currentTimeMillis();
-            log.info("Video loaded in {} s", (endTime - startTime) / 1000.0);
+                Long endTime = System.currentTimeMillis();
+                log.info("Video loaded in {} s", (endTime - startTime) / 1000.0);
 
-            Integer bestFrameIndex = SimilarityUtils.findSampleEndMoment(
-                    similarities,
-                    timestamps.stream().mapToLong(Long::valueOf).toArray(),
-                    0.9,
-                    2);
-            if (bestFrameIndex == null) {
-                log.error("Cannot find sample end moment, please check the video and template image!");
-                return;
+                Integer bestFrameIndex = SimilarityUtils.findSampleEndMoment(
+                        similarities,
+                        timestamps.stream().mapToLong(Long::valueOf).toArray(),
+                        0.9,
+                        2);
+                if (bestFrameIndex == null) {
+                    log.error("Cannot find sample end moment, please check the video and template image!");
+                    return;
+                }
+                chosenTime = timestamps.get(bestFrameIndex);
+                log.info("Sample end moment found: {}", chosenTime / 1000.0);
+            } finally {
+                cap.release();
             }
-            chosenTime = timestamps.get(bestFrameIndex);
-            log.info("Sample end moment found, timestamp: {}", bestFrameIndex);
-            log.info("The chosen second: {}", chosenTime / 1000.0);
-            cap.release();
         }
 
         VideoCapture cap = new VideoCapture(videoPath);
