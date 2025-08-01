@@ -32,6 +32,9 @@ public class CompressionProgressController extends AbstractProgressController {
     private double progressValue;
     private CountDownLatch latch;
 
+    public final static Pattern DURATION_PATTERN = Pattern.compile("^\\s*Duration: (\\d+:\\d+:\\d+.\\d+).*");
+    public final static Pattern TIME_PATTERN = Pattern.compile("^.*time=(\\d+:\\d+:\\d+.\\d+).*");
+
     @FXML
     private ProgressBar progressBar;
 
@@ -92,14 +95,12 @@ public class CompressionProgressController extends AbstractProgressController {
                                 throw new Exception(errorMessage.toString());
                             }
                             // Find duration
-                            Pattern durPattern = Pattern.compile("^\\s*Duration: (\\d+:\\d+:\\d+.\\d+).*");
-                            Matcher durMatcher = durPattern.matcher(line);
+                            Matcher durMatcher = DURATION_PATTERN.matcher(line);
                             if (durMatcher.matches()) {
                                 totalSeconds = calculateSecond(durMatcher.group(1));
                                 continue;
                             }
-                            Pattern timePattern = Pattern.compile("^.*time=(\\d+:\\d+:\\d+.\\d+).*");
-                            Matcher timeMatcher = timePattern.matcher(line);
+                            Matcher timeMatcher = TIME_PATTERN.matcher(line);
                             if (timeMatcher.matches()) {
                                 double currentSeconds = calculateSecond(timeMatcher.group(1));
                                 double updateProgress = currentSeconds * totalProgress / totalSeconds;

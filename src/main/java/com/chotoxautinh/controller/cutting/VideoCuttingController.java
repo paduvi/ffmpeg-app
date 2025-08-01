@@ -1,5 +1,6 @@
 package com.chotoxautinh.controller.cutting;
 
+import ai.onnxruntime.OrtException;
 import com.chotoxautinh.conf.AppConfig;
 import com.chotoxautinh.conf.Constants;
 import com.chotoxautinh.controller.AbstractController;
@@ -8,7 +9,6 @@ import com.chotoxautinh.model.Video;
 import com.chotoxautinh.service.SampleImageService;
 import com.chotoxautinh.service.impl.SampleImageServiceImpl;
 import com.chotoxautinh.util.AppUtils;
-import com.chotoxautinh.util.PythonUtils;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -19,7 +19,6 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
@@ -41,8 +40,6 @@ public class VideoCuttingController extends AbstractController {
     private final Preferences prefs = Preferences.userNodeForPackage(AppConfig.class);
     private final SampleImageService sampleImageService = SampleImageServiceImpl.getInstance();
 
-    @FXML
-    private AnchorPane overlay;
     @FXML
     private ImageView previewImg;
 
@@ -73,11 +70,8 @@ public class VideoCuttingController extends AbstractController {
     private final ObservableList<Video> videoData = FXCollections.observableArrayList();
 
     @FXML
-    private void initialize() throws IOException, URISyntaxException, InterruptedException, SQLException {
+    private void initialize() throws IOException, URISyntaxException, SQLException {
         final ToggleGroup toggleGroup = new ToggleGroup();
-        if (PythonUtils.isPythonAvailable()) {
-            overlay.setVisible(true);
-        }
 
         selectColumn.setCellValueFactory(cellData -> cellData.getValue().selectedProperty());
         selectColumn.setCellFactory(CheckBoxTableCell.forTableColumn(selectColumn));
@@ -350,7 +344,7 @@ public class VideoCuttingController extends AbstractController {
             controller.setVideos(list, sampleImagePath);
 
             dialogStage.show();
-        } catch (IOException e) {
+        } catch (IOException | OrtException e) {
             log.error("Error handleCut: {}", e.getMessage(), e);
             AppUtils.alertError(e);
         }

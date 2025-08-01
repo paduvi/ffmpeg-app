@@ -27,7 +27,7 @@ export APP_VERSION=1.0.1
 # Create a custom runtime image
 jlink \
   --module-path "$JAVA_HOME/jmods:$PATH_TO_FX_MODS" \
-  --add-modules java.naming,java.management,java.sql,java.logging,jdk.crypto.ec,java.security.sasl,javafx.controls,javafx.fxml \
+  --add-modules java.naming,java.sql,java.logging,javafx.controls,javafx.fxml \
   --output jre
   
 # Build and package for different MacOSX types
@@ -37,7 +37,7 @@ jpackage --type $type \
   --input target \
   --main-jar DogyMPEGApp.jar \
   --main-class com.chotoxautinh.Main \
-  --java-options "-Xmx2048m -Dbranch=main" \
+  --java-options "-Xmx2048m" \
   --runtime-image jre \
   --app-version $APP_VERSION \
   --vendor "Dogy Inc." \
@@ -73,7 +73,7 @@ $env:APP_VERSION="1.0.1"
 
 # Create a custom runtime image
 jlink --module-path "$env:JAVA_HOME\jmods;$env:PATH_TO_FX_MODS" `
-      --add-modules java.naming,java.management,java.sql,java.logging,jdk.crypto.ec,java.security.sasl,javafx.controls,javafx.fxml `
+      --add-modules java.naming,java.sql,java.logging,javafx.controls,javafx.fxml `
       --output jre
       
 # Build and package for different Windows types
@@ -84,7 +84,7 @@ foreach ($T in $TYPES) {
         --name DogyMpegApp `
         --main-jar "DogyMPEGApp.jar" `
         --main-class "com.chotoxautinh.Main" `
-        --java-options "-Xmx2048m -Dbranch=main" `
+        --java-options "-Xmx2048m" `
         --runtime-image jre `
         --icon "src\main\resources\icon.ico" `
         --app-version "$env:APP_VERSION" `
@@ -93,12 +93,3 @@ foreach ($T in $TYPES) {
         --dest dist/jpackage/win
 }
 ```
-
-**For CUDA support (if you have an NVIDIA GPU):**
-
-You can pass the CUDA version in the jpackage command like this: `--java-options "-Xmx2048m -Dbranch=main -Dcuda=12.4"`.
-
-The list of CUDA options is supporting:
-- `-Dcuda=12.4`: version ≥ 12.4
-- `-Dcuda=12.1`: version ≥ 12.1
-- `-Dcuda=11.8`: version ≥ 11.8

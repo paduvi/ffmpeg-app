@@ -1,8 +1,8 @@
 package com.chotoxautinh.model;
 
 import com.chotoxautinh.util.ImageUtils;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.awt.image.BufferedImage;
 import java.util.Iterator;
 import java.util.List;
@@ -18,7 +18,7 @@ public class FrameDataset implements Iterable<float[]> {
         this.height = height;
     }
 
-    @NotNull
+    @Nonnull
     @Override
     public Iterator<float[]> iterator() {
         return frames.stream()

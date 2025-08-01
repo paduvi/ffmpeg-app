@@ -26,7 +26,7 @@ import java.util.prefs.Preferences;
 @Slf4j
 public class AbstractProgressController extends AbstractController {
     private final Preferences prefs = Preferences.userNodeForPackage(AppConfig.class);
-    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
     private String containFolder;
     private boolean running = false;

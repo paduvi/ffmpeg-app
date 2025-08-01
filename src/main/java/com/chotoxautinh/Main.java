@@ -4,20 +4,15 @@ import com.chotoxautinh.conf.AppConfig;
 import com.chotoxautinh.conf.Constants;
 import com.chotoxautinh.controller.RootController;
 import com.chotoxautinh.controller.SplashController;
-import com.chotoxautinh.service.VideoCuttingService;
 import com.chotoxautinh.service.impl.SampleImageServiceImpl;
-import com.chotoxautinh.service.impl.VideoCuttingServiceImpl;
 import com.chotoxautinh.util.AppUtils;
 import com.chotoxautinh.util.DBConnectionUtils;
-import com.chotoxautinh.util.PythonUtils;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
@@ -25,19 +20,17 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import lombok.extern.slf4j.Slf4j;
+import nu.pattern.OpenCV;
 import org.bytedeco.javacpp.Loader;
 
-import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.util.Objects;
 import java.util.logging.LogManager;
 
 @Slf4j
 public class Main extends Application {
     private Stage primaryStage;
-    private final VideoCuttingService videoCuttingService = VideoCuttingServiceImpl.getInstance();
     private final SampleImageServiceImpl sampleImageService = SampleImageServiceImpl.getInstance();
 
     @Override
@@ -74,39 +67,11 @@ public class Main extends Application {
                 );
                 Loader.load(org.bytedeco.ffmpeg.ffmpeg.class);
 
-                // 3. Load FFMPEG binary
+                // 3. Load OpenCV binary
                 Platform.runLater(() ->
-                        splashController.updateProgress(ProgressBar.INDETERMINATE_PROGRESS, "Checking Python binary availability...")
+                        splashController.updateProgress(ProgressBar.INDETERMINATE_PROGRESS, "Loading built-in OpenCV binary...")
                 );
-                if (PythonUtils.isPythonAvailable()) {
-                    Platform.runLater(() -> {
-                        splashStage.close();
-
-                        Alert alert = new Alert(Alert.AlertType.ERROR,
-                                "This application requires Python 3.12 or higher to be installed.\nDo you want to open the Python download page?",
-                                ButtonType.YES, ButtonType.NO);
-                        alert.setHeaderText("Python Not Found");
-
-                        alert.showAndWait().ifPresent(response -> {
-                            if (response == ButtonType.YES) {
-                                try {
-                                    Desktop.getDesktop().browse(new URI(PythonUtils.getDownloadUrlByOS()));
-                                } catch (Exception e) {
-                                    log.error("Error opening browser", e);
-                                }
-                            }
-                            Platform.exit();
-                        });
-                    });
-                    return;
-                }
-                log.info("Python is already available.");
-
-                // 4. Load video cutting resources
-                Platform.runLater(() ->
-                        splashController.updateProgress(ProgressBar.INDETERMINATE_PROGRESS, "Loading additional resources...")
-                );
-                VideoCuttingServiceImpl.getInstance().initialize();
+                OpenCV.loadLocally();
             } catch (Throwable e) {
                 log.error("Error loading application", e);
                 Platform.runLater(() -> {
@@ -152,7 +117,6 @@ public class Main extends Application {
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             DBConnectionUtils.shutdown();
-            videoCuttingService.shutdown();
             Platform.exit();
         }));
 
