@@ -48,8 +48,9 @@ public class Main extends Application {
         // Create a new stage for the splash screen
         Stage splashStage = new Stage(StageStyle.UNDECORATED);
         Scene splashScene = new Scene(splashRoot);
+        splashScene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/style/application.css")).toExternalForm());
         splashStage.setScene(splashScene);
-        splashStage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/img/dog_logo.jpg"))));
+        splashStage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/img/logo.png"))));
         splashStage.show();
 
         // Create a separate thread for loading tasks
@@ -130,7 +131,7 @@ public class Main extends Application {
         primaryStage.setHeight(visualBounds.getHeight());
         primaryStage.setTitle(AppConfig.getInstance().APP_NAME + " By " + AppConfig.getInstance().APP_VENDOR);
         primaryStage.setResizable(false);
-        primaryStage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/img/dog_logo.jpg"))));
+        primaryStage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/img/logo.png"))));
 
         primaryStage.setScene(scene);
         primaryStage.show();

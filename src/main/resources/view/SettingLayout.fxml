@@ -62,7 +62,7 @@
       <Button layoutY="5.0" mnemonicParsing="false" onAction="#handleReset" style="-fx-background-color: #dddddd;"
               text="Reset " textFill="BLACK" AnchorPane.rightAnchor="210.0">
          <graphic>
-            <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
+            <ImageView fitHeight="32.0" pickOnBounds="true" preserveRatio="true">
                <Image url="@../img/reset-icon.png"/>
             </ImageView>
          </graphic>
@@ -70,7 +70,7 @@
       <Button defaultButton="true" layoutY="5.0" mnemonicParsing="false" onAction="#handleSave"
               style="-fx-background-color: #009688;" text="Save  " textFill="WHITE" AnchorPane.rightAnchor="105.0">
          <graphic>
-            <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
+            <ImageView fitHeight="32.0" pickOnBounds="true" preserveRatio="true">
                <Image url="@../img/save-icon.png"/>
             </ImageView>
          </graphic>
@@ -78,8 +78,8 @@
       <Button cancelButton="true" layoutY="5.0" mnemonicParsing="false" onAction="#handleCancel"
               style="-fx-background-color: #C1392B;" text="Cancel" textFill="WHITE" AnchorPane.rightAnchor="0.0">
          <graphic>
-            <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
-               <Image url="@../img/cancel.png"/>
+            <ImageView fitHeight="32.0" pickOnBounds="true" preserveRatio="true">
+               <Image url="@../img/cancel-icon.png"/>
             </ImageView>
          </graphic>
       </Button>

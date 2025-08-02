@@ -4,8 +4,46 @@
 	-fx-faint-focus-color: transparent;
 }
 
+.menu-item {
+	-fx-background-color: white;
+}
+
+.menu:hover,
+.menu:focused,
+.menu:armed,
+.menu:showing,
+.menu:selected {
+	-fx-background-color: #F8C1D9;
+}
+
+.menu-item:hover,
+.menu-item:focused,
+.menu-item:armed,
+.menu-item:showing,
+.menu-item:selected {
+	-fx-background-color: linear-gradient(to bottom, #F8C1D9, #B1DAAE);
+}
+
+.menu .label, .menu-item .label {
+	-fx-text-fill: black; /* Áp dụng cho phần text */
+}
+
 .context-menu {
     -fx-padding: 0;
+}
+
+.menu {
+	-fx-cursor: hand;
+	-fx-font-size: 16px;
+}
+
+.menu-item {
+	-fx-cursor: hand;
+	-fx-font-size: 16px;
+}
+
+.progress-bar .bar {
+	-fx-background-color: linear-gradient(to right, #F8C1D9, #B1DAAE);
 }
 
 .button {
@@ -72,17 +110,6 @@
 	-fx-background-color: linear-gradient(to bottom, #fafafa, #f0f0f0);
 	-fx-padding: 15 10;
 	-fx-spacing: 12;
-	-fx-border-width: 0 1 0 0;
-	-fx-border-color: #e0e0e0;
-}
-
-#sideMenu .toggle-button:hover {
-	-fx-background-color: rgba(0, 0, 0, 0.05);
-}
-
-#sideMenu .toggle-button:selected {
-	-fx-background-color: #007bff;
-	-fx-text-fill: white;
 }
 
 /* If your toggle buttons have icons */
@@ -103,17 +130,21 @@
 	-fx-min-width: 200;
 }
 
+#sideMenu .toggle-button:hover {
+	-fx-background-color: #B1DAAE;
+}
+
 #sideMenu .toggle-button:disabled {
 	-fx-opacity: 1.0; /* Override default disabled opacity */
 }
 
 #sideMenu .toggle-button:selected {
-	-fx-background-color: #007bff;
+	-fx-background-color: #d079b1;
 	-fx-text-fill: white;
 	-fx-cursor: default; /* Change cursor for selected state */
 }
 
 #sideMenu .toggle-button:selected:disabled {
-	-fx-background-color: #007bff; /* Maintain the selected color even when disabled */
+	-fx-background-color: #d079b1; /* Maintain the selected color even when disabled */
 	-fx-text-fill: white;
 }

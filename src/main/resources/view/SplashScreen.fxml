@@ -8,10 +8,10 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox alignment="CENTER" style="-fx-background-color: white;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.chotoxautinh.controller.SplashController">
+<VBox alignment="CENTER" style="-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #F8C1D9, #B1DAAE);" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.chotoxautinh.controller.SplashController">
     <AnchorPane prefHeight="200.0" prefWidth="200.0">
         <ImageView fitHeight="600" fitWidth="600" preserveRatio="true">
-            <Image url="@../img/dog_logo.jpg"/>
+            <Image url="@../img/splash-screen.gif"/>
         </ImageView>
         <Label fx:id="loadingLabel" text="Loading..." AnchorPane.bottomAnchor="5.0" AnchorPane.leftAnchor="5.0">
           <opaqueInsets>

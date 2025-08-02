@@ -20,14 +20,14 @@
             <Menu mnemonicParsing="false" text="File">
                 <MenuItem mnemonicParsing="false" onAction="#handleSettingAction" text="Settings">
                     <graphic>
-                        <ImageView fitHeight="24.0" fitWidth="24.0" pickOnBounds="true" preserveRatio="true">
+                        <ImageView fitHeight="40.0" pickOnBounds="true" preserveRatio="true">
                             <Image url="@../img/settings-icon.png"/>
                         </ImageView>
                     </graphic>
                 </MenuItem>
                 <MenuItem mnemonicParsing="false" onAction="#handleExitAction" text="Exit">
                     <graphic>
-                        <ImageView fitHeight="24.0" fitWidth="24.0" pickOnBounds="true" preserveRatio="true">
+                        <ImageView fitHeight="40.0" pickOnBounds="true" preserveRatio="true">
                             <Image url="@../img/exit-icon.png"/>
                         </ImageView>
                     </graphic>
@@ -36,7 +36,7 @@
             <Menu mnemonicParsing="false" text="Help">
                 <MenuItem mnemonicParsing="false" onAction="#handleAboutAction" text="About">
                     <graphic>
-                        <ImageView fitHeight="24.0" fitWidth="24.0" pickOnBounds="true" preserveRatio="true">
+                        <ImageView fitHeight="40.0" pickOnBounds="true" preserveRatio="true">
                             <Image url="@../img/about-icon.png"/>
                         </ImageView>
                     </graphic>
@@ -57,17 +57,21 @@
                 <padding>
                     <Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/>
                 </padding>
-                <Label fx:id="appTitle" style="-fx-font-weight: 600" text="App Name" AnchorPane.leftAnchor="55.0"
-                       AnchorPane.topAnchor="0.0">
+                <Label fx:id="appTitle" style="-fx-font-weight: 600" text="App Name" AnchorPane.leftAnchor="82.0"
+                       AnchorPane.topAnchor="10.0">
                     <font>
-                        <Font size="16.0"/>
+                        <Font size="18.0"/>
                     </font>
                 </Label>
-                <Label fx:id="appVersion" text="App Version" AnchorPane.leftAnchor="55.0"
-                       AnchorPane.topAnchor="25.0"/>
-                <ImageView fitHeight="45.0" fitWidth="45.0" pickOnBounds="true" preserveRatio="true"
+                <Label fx:id="appVersion" text="App Version" AnchorPane.leftAnchor="82.0"
+                       AnchorPane.bottomAnchor="10.0">
+                    <font>
+                        <Font size="14.0"/>
+                    </font>
+                </Label>
+                <ImageView fitHeight="72.0" fitWidth="72.0" pickOnBounds="true" preserveRatio="true"
                            AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0">
-                    <Image url="@../img/dog_logo.jpg"/>
+                    <Image url="@../img/logo.png"/>
                 </ImageView>
             </AnchorPane>
             <VBox fx:id="sideMenu" spacing="10" style="-fx-padding: 10; -fx-background-color: #f4f4f4;">

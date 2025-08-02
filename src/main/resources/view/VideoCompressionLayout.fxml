@@ -29,7 +29,7 @@
       <Button mnemonicParsing="false" onAction="#handleOpen" style="-fx-background-color: #51DC47;" text="Add Video"
               textFill="WHITE">
          <graphic>
-            <ImageView fitHeight="24.0" fitWidth="24.0" pickOnBounds="true" preserveRatio="true">
+            <ImageView fitHeight="32.0" pickOnBounds="true" preserveRatio="true">
                <Image url="@../img/add-icon.png"/>
             </ImageView>
          </graphic>
@@ -37,7 +37,7 @@
       <Button mnemonicParsing="false" onAction="#handleRemove" style="-fx-background-color: #C1392B;" text="Remove"
               textFill="WHITE">
          <graphic>
-            <ImageView fitHeight="24.0" fitWidth="24.0" pickOnBounds="true" preserveRatio="true">
+            <ImageView fitHeight="32.0" pickOnBounds="true" preserveRatio="true">
                <Image url="@../img/remove-icon.png"/>
             </ImageView>
          </graphic>
@@ -45,7 +45,7 @@
       <Button layoutX="135.0" layoutY="10.0" mnemonicParsing="false" onAction="#handleSelectAll"
               style="-fx-background-color: #009688;" text="Select All" textFill="WHITE">
          <graphic>
-            <ImageView fitHeight="24.0" fitWidth="24.0" pickOnBounds="true" preserveRatio="true">
+            <ImageView fitHeight="32.0" pickOnBounds="true" preserveRatio="true">
                <Image url="@../img/check-icon.png"/>
             </ImageView>
          </graphic>
@@ -55,7 +55,7 @@
            style="-fx-background-color: #FFD600;" text="Convert" textFill="RED" AnchorPane.rightAnchor="15.0"
            AnchorPane.topAnchor="15.0">
       <graphic>
-         <ImageView fitHeight="24.0" fitWidth="24.0" pickOnBounds="true" preserveRatio="true">
+         <ImageView fitHeight="32.0" pickOnBounds="true" preserveRatio="true">
             <Image url="@../img/convert-icon.png"/>
          </ImageView>
       </graphic>

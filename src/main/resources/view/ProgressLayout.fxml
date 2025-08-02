@@ -23,15 +23,15 @@
       <Button fx:id="btn" layoutX="490.0" layoutY="5.0" mnemonicParsing="false"
               style="-fx-background-color: #C1392B;" text="Cancel" textFill="WHITE" AnchorPane.rightAnchor="0.0">
          <graphic>
-            <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
-               <Image url="@../img/cancel.png"/>
+            <ImageView fx:id="btnImg" fitHeight="32.0" pickOnBounds="true" preserveRatio="true">
+               <Image url="@../img/cancel-icon.png"/>
             </ImageView>
          </graphic>
       </Button>
       <Button fx:id="openBtn" layoutX="343.0" layoutY="5.0" mnemonicParsing="false"
               style="-fx-background-color: #906AA3;" text="Show in Folder" textFill="WHITE" visible="false">
          <graphic>
-            <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
+            <ImageView fitHeight="32.0" pickOnBounds="true" preserveRatio="true">
                <Image url="@../img/open-icon.png"/>
             </ImageView>
          </graphic>
