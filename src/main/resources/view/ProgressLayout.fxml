@@ -23,7 +23,7 @@
       <Button fx:id="btn" layoutX="490.0" layoutY="5.0" mnemonicParsing="false"
               style="-fx-background-color: #C1392B;" text="Cancel" textFill="WHITE" AnchorPane.rightAnchor="0.0">
          <graphic>
-            <ImageView fx:id="btnImg" fitHeight="32.0" pickOnBounds="true" preserveRatio="true">
+            <ImageView fitHeight="32.0" pickOnBounds="true" preserveRatio="true">
                <Image url="@../img/cancel-icon.png"/>
             </ImageView>
          </graphic>

@@ -336,6 +336,7 @@ public class VideoCuttingController extends AbstractController {
             dialogStage.initOwner(getStage());
             Scene scene = new Scene(progress);
             scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/style/application.css")).toExternalForm());
+            dialogStage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/img/logo.png"))));
             dialogStage.setScene(scene);
 
             // Set the videos into the controller.

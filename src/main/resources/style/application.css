@@ -42,8 +42,12 @@
 	-fx-font-size: 16px;
 }
 
-.progress-bar .bar {
+.progress-bar:determinate .bar {
 	-fx-background-color: linear-gradient(to right, #F8C1D9, #B1DAAE);
+}
+
+.progress-bar:indeterminate .bar {
+	-fx-background-color: linear-gradient(to right, #F8C1D9, rgba(177, 218, 174, 0.7) 60%, rgba(177, 218, 174, 0.1));
 }
 
 .button {

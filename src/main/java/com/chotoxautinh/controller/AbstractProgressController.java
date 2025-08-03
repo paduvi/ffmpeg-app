@@ -8,8 +8,6 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,7 +18,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -39,9 +36,6 @@ public class AbstractProgressController extends AbstractController {
 
     @FXML
     private Button btn;
-
-    @FXML
-    private ImageView btnImg;
 
     @FXML
     private Button openBtn;
@@ -90,10 +84,7 @@ public class AbstractProgressController extends AbstractController {
         }
         executor.shutdown();
 
-        double originalWidth = btn.getWidth();
         btn.setText("Close");
-        btnImg.setImage(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/img/close-icon.png"))));
-        btn.setPrefWidth(originalWidth);
         timeLabel.setText("Canceled!");
         getStage().setTitle("Canceled!");
         running = false;

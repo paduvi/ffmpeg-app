@@ -79,7 +79,7 @@
               style="-fx-background-color: #C1392B;" text="Cancel" textFill="WHITE" AnchorPane.rightAnchor="0.0">
          <graphic>
             <ImageView fitHeight="32.0" pickOnBounds="true" preserveRatio="true">
-               <Image url="@../img/cancel-icon.png"/>
+               <Image url="@../img/close-icon.png"/>
             </ImageView>
          </graphic>
       </Button>
