@@ -4,7 +4,6 @@ import com.chotoxautinh.conf.AppConfig;
 import com.chotoxautinh.conf.Constants;
 import com.chotoxautinh.controller.AbstractController;
 import com.chotoxautinh.model.AudioCodec;
-import com.chotoxautinh.model.Direction;
 import com.chotoxautinh.model.Preset;
 import com.chotoxautinh.util.VideoUtils;
 import javafx.event.ActionEvent;
@@ -61,7 +60,7 @@ public class SettingController extends AbstractController {
         audioCodecComboBox.setValue(prefs.get(Constants.AUDIO_CODEC_KEY, Constants.DEFAULT_AUDIO_CODEC_VALUE.getLabel()));
 
         videoExtComboBox.getItems().addFirst(Constants.DEFAULT_VIDEO_EXTENSION_VALUE);
-        videoExtComboBox.getItems().addAll(VideoUtils.getSupportedExtension(Direction.OUTPUT).keySet());
+        videoExtComboBox.getItems().addAll(VideoUtils.getSupportedExtension());
         videoExtComboBox.setValue(prefs.get(Constants.VIDEO_EXTENSION_KEY, Constants.DEFAULT_VIDEO_EXTENSION_VALUE));
 
         presetComboBox.getItems().addAll(Arrays.stream(Preset.values()).map(Preset::getLabel).toList());

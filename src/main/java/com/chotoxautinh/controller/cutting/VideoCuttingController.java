@@ -4,7 +4,6 @@ import ai.onnxruntime.OrtException;
 import com.chotoxautinh.conf.AppConfig;
 import com.chotoxautinh.conf.Constants;
 import com.chotoxautinh.controller.AbstractController;
-import com.chotoxautinh.model.Direction;
 import com.chotoxautinh.model.SampleImage;
 import com.chotoxautinh.model.Video;
 import com.chotoxautinh.service.SampleImageService;
@@ -257,8 +256,8 @@ public class VideoCuttingController extends AbstractController {
             FileChooser fileChooser = new FileChooser();
 
             List<String> allExtensions = new LinkedList<>();
-            for (Map.Entry<String, String> entry : VideoUtils.getSupportedExtension(Direction.INPUT).entrySet()) {
-                allExtensions.addAll(Arrays.stream(entry.getKey().split(","))
+            for (String format : VideoUtils.getSupportedExtension()) {
+                allExtensions.addAll(Arrays.stream(format.split(","))
                         .map(String::trim)
                         .map(ext -> "*." + ext)
                         .toList());

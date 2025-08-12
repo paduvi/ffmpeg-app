@@ -2,13 +2,13 @@ package com.chotoxautinh.util;
 
 import com.chotoxautinh.conf.AppConfig;
 import com.chotoxautinh.conf.Constants;
-import com.chotoxautinh.model.Direction;
 import lombok.extern.slf4j.Slf4j;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.Loader;
+import org.nd4j.shade.guava.collect.Sets;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -18,34 +18,35 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.prefs.Preferences;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Slf4j
 public class VideoUtils {
-
     private static final Preferences prefs = Preferences.userNodeForPackage(AppConfig.class);
 
-    public static Map<String, String> getSupportedExtension(Direction direction) throws InterruptedException, IOException {
-        Map<String, String> result = new TreeMap<>();
-        // Determine the correct FFmpeg command
-        List<String> command = new ArrayList<>();
-        command.add(getBinaryPath());
-        switch (direction) {
-            case INPUT -> command.add("-demuxers");
-            case OUTPUT -> command.add("-muxers");
-            default -> throw new IllegalArgumentException("Invalid direction. Must be 'INPUT', or 'OUTPUT'.");
-        }
+    public static Collection<String> getSupportedExtension() throws InterruptedException, IOException {
+        Set<String> inputFormats = new TreeSet<>();
+        Set<String> outputFormats = new TreeSet<>();
 
-        ProcessBuilder pb = new ProcessBuilder(command);
-        Process process = pb.start();
+        ProcessBuilder demuxerPB = new ProcessBuilder(getBinaryPath(), "-demuxers");
+        getSupportedFormats(inputFormats, demuxerPB);
 
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+        ProcessBuilder muxerPB = new ProcessBuilder(getBinaryPath(), "-muxers");
+        getSupportedFormats(outputFormats, muxerPB);
+
+        return Sets.intersection(inputFormats, outputFormats);
+    }
+
+    private static void getSupportedFormats(Set<String> outputFormats, ProcessBuilder muxerPB) throws IOException, InterruptedException {
+        Process muxerProcess = muxerPB.start();
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(muxerProcess.getInputStream()))) {
             String line;
             boolean startParsing = false;
             Pattern pattern = Pattern.compile("^\\s*([D\\sE]{2})\\s+(\\S+)\\s+(.*)$");
@@ -60,27 +61,19 @@ public class VideoUtils {
 
                 Matcher matcher = pattern.matcher(line);
                 if (matcher.find()) {
-                    String flag = matcher.group(1).trim();
                     String ext = matcher.group(2).trim();
-                    String desc = matcher.group(3).trim();
-
-                    // Apply filter based on input type
-                    String regex = "[" + Pattern.quote(direction.getValue()) + "]";
-                    if (flag.matches(".*" + regex + ".*")) {
-                        result.put(ext, desc);
-                    }
+                    outputFormats.addAll(Arrays.stream(ext.split(",")).toList());
                 }
             }
 
-            process.waitFor();
+            muxerProcess.waitFor();
         }
-
-        return result;
     }
 
     public static String getBinaryPath() {
         if (prefs.getBoolean(Constants.USE_DEFAULT_FFMPEG_KEY, true))
             return Loader.load(org.bytedeco.ffmpeg.ffmpeg.class);
+
         return prefs.get(Constants.FFMPEG_LOCATION_KEY, Loader.load(org.bytedeco.ffmpeg.ffmpeg.class));
     }
 
