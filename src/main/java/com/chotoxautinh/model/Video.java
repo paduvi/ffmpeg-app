@@ -5,6 +5,7 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import lombok.Getter;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,6 +18,8 @@ public class Video {
     private final StringProperty size;
     private StringProperty type;
     private final BooleanProperty selected;
+    @Getter
+    private final String extension;
 
     public Video(File file) {
         Path p = file.toPath();
@@ -30,6 +33,7 @@ public class Video {
         this.size = new SimpleStringProperty(VideoUtils.defineSize(file.length()));
         this.duration = new SimpleStringProperty(VideoUtils.getVideoDurationInTimestamp(file));
         this.selected = new SimpleBooleanProperty(false);
+        this.extension = VideoUtils.getFileExtension(file.getAbsolutePath());
     }
 
     public String getName() {
@@ -91,5 +95,4 @@ public class Video {
     public StringProperty durationProperty() {
         return duration;
     }
-
 }

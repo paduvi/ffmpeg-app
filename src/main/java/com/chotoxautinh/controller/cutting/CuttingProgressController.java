@@ -170,7 +170,7 @@ public class CuttingProgressController extends AbstractProgressController {
                                 }
 
                                 double chosenTime = timestamps.get(bestFrameIndex);
-                                videoCuttingService.cutVideo(video.getPath(), getContainFolder() + File.separator + video.getName() + ".mp4", chosenTime / 1000);
+                                videoCuttingService.cutVideo(video.getPath(), getContainFolder() + File.separator + video.getName() + video.getExtension(), chosenTime / 1000);
                             }
                             synchronized (LOCK) {
                                 progressValue += (totalProgress - currentProgress);

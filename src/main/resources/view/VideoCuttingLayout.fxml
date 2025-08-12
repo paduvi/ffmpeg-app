@@ -32,18 +32,18 @@
             <HBox layoutX="14.0" layoutY="14.0" prefHeight="34.0" prefWidth="417.0" spacing="15.0"
                   AnchorPane.leftAnchor="15.0"
                   AnchorPane.rightAnchor="168.0" AnchorPane.topAnchor="15.0">
-                <Button mnemonicParsing="false" onAction="#handleOpen" style="-fx-background-color: #51DC47;"
-                        text="Add Video"
-                        textFill="WHITE">
+                <Button mnemonicParsing="false" onAction="#handleOpen"
+                        style="-fx-background-color: #B1DAAE;"
+                        text="Add Video" textFill="BLACK">
                     <graphic>
                         <ImageView fitHeight="32.0" pickOnBounds="true" preserveRatio="true">
                             <Image url="@../img/add-icon.png"/>
                         </ImageView>
                     </graphic>
                 </Button>
-                <Button mnemonicParsing="false" onAction="#handleRemove" style="-fx-background-color: #C1392B;"
-                        text="Remove"
-                        textFill="WHITE">
+                <Button mnemonicParsing="false" onAction="#handleRemove"
+                        style="-fx-background-color: #B1DAAE;"
+                        text="Remove" textFill="BLACK">
                     <graphic>
                         <ImageView fitHeight="32.0" pickOnBounds="true" preserveRatio="true">
                             <Image url="@../img/remove-icon.png"/>
@@ -51,7 +51,8 @@
                     </graphic>
                 </Button>
                 <Button layoutX="135.0" layoutY="10.0" mnemonicParsing="false" onAction="#handleSelectAll"
-                        style="-fx-background-color: #009688;" text="Select All" textFill="WHITE">
+                        style="-fx-background-color: #B1DAAE;"
+                        text="Select All" textFill="BLACK">
                     <graphic>
                         <ImageView fitHeight="32.0" pickOnBounds="true" preserveRatio="true">
                             <Image url="@../img/check-icon.png"/>

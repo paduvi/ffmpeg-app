@@ -1,20 +1,101 @@
 package com.chotoxautinh.util;
 
+import com.chotoxautinh.conf.AppConfig;
+import com.chotoxautinh.conf.Constants;
+import com.chotoxautinh.model.Direction;
 import lombok.extern.slf4j.Slf4j;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
+import org.bytedeco.javacpp.Loader;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.prefs.Preferences;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 public class VideoUtils {
+
+    private static final Preferences prefs = Preferences.userNodeForPackage(AppConfig.class);
+
+    public static Map<String, String> getSupportedExtension(Direction direction) throws InterruptedException, IOException {
+        Map<String, String> result = new TreeMap<>();
+        // Determine the correct FFmpeg command
+        List<String> command = new ArrayList<>();
+        command.add(getBinaryPath());
+        switch (direction) {
+            case INPUT -> command.add("-demuxers");
+            case OUTPUT -> command.add("-muxers");
+            default -> throw new IllegalArgumentException("Invalid direction. Must be 'INPUT', or 'OUTPUT'.");
+        }
+
+        ProcessBuilder pb = new ProcessBuilder(command);
+        Process process = pb.start();
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            boolean startParsing = false;
+            Pattern pattern = Pattern.compile("^\\s*([D\\sE]{2})\\s+(\\S+)\\s+(.*)$");
+
+            while ((line = reader.readLine()) != null) {
+                if (!startParsing) {
+                    if (line.contains("---")) {
+                        startParsing = true;
+                    }
+                    continue;
+                }
+
+                Matcher matcher = pattern.matcher(line);
+                if (matcher.find()) {
+                    String flag = matcher.group(1).trim();
+                    String ext = matcher.group(2).trim();
+                    String desc = matcher.group(3).trim();
+
+                    // Apply filter based on input type
+                    String regex = "[" + Pattern.quote(direction.getValue()) + "]";
+                    if (flag.matches(".*" + regex + ".*")) {
+                        result.put(ext, desc);
+                    }
+                }
+            }
+
+            process.waitFor();
+        }
+
+        return result;
+    }
+
+    public static String getBinaryPath() {
+        if (prefs.getBoolean(Constants.USE_DEFAULT_FFMPEG_KEY, true))
+            return Loader.load(org.bytedeco.ffmpeg.ffmpeg.class);
+        return prefs.get(Constants.FFMPEG_LOCATION_KEY, Loader.load(org.bytedeco.ffmpeg.ffmpeg.class));
+    }
+
+    public static String getFileExtension(String filePath) {
+        if (filePath == null) return null;
+
+        int lastDot = filePath.lastIndexOf('.');
+        int lastSeparator = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
+
+        if (lastDot > lastSeparator) {
+            return filePath.substring(lastDot).toLowerCase(); // Keep the dot
+        }
+
+        return "";
+    }
 
     public static String defineSize(double size) {
         String unit = "Byte";

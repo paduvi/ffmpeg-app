@@ -1,18 +1,13 @@
 package com.chotoxautinh.service.impl;
 
-import com.chotoxautinh.conf.AppConfig;
-import com.chotoxautinh.conf.Constants;
 import com.chotoxautinh.service.VideoCuttingService;
+import com.chotoxautinh.util.VideoUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.bytedeco.javacpp.Loader;
 
 import java.io.IOException;
-import java.util.prefs.Preferences;
 
 @Slf4j
 public class VideoCuttingServiceImpl implements VideoCuttingService {
-    private final Preferences prefs = Preferences.userNodeForPackage(AppConfig.class);
-
     // Private constructor to prevent direct instantiation
     private VideoCuttingServiceImpl() {
     }
@@ -27,7 +22,7 @@ public class VideoCuttingServiceImpl implements VideoCuttingService {
 
     @Override
     public void cutVideo(String inputPath, String outputPath, double startTime) throws IOException, InterruptedException {
-        ProcessBuilder builder = new ProcessBuilder(getBinaryPath(),
+        ProcessBuilder builder = new ProcessBuilder(VideoUtils.getBinaryPath(),
                 "-i", inputPath,
                 "-c", "copy",
                 "-threads", "0",
@@ -38,11 +33,4 @@ public class VideoCuttingServiceImpl implements VideoCuttingService {
         Process process = builder.start();
         process.waitFor();
     }
-
-    private String getBinaryPath() {
-        if (prefs.getBoolean(Constants.USE_DEFAULT_FFMPEG_KEY, true))
-            return Loader.load(org.bytedeco.ffmpeg.ffmpeg.class);
-        return prefs.get(Constants.FFMPEG_LOCATION_KEY, Loader.load(org.bytedeco.ffmpeg.ffmpeg.class));
-    }
-
 }

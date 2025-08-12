@@ -6,13 +6,13 @@ import com.chotoxautinh.controller.AbstractProgressController;
 import com.chotoxautinh.model.AudioCodec;
 import com.chotoxautinh.model.Preset;
 import com.chotoxautinh.model.Video;
+import com.chotoxautinh.util.VideoUtils;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ProgressBar;
 import lombok.extern.slf4j.Slf4j;
-import org.bytedeco.javacpp.Loader;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -38,18 +38,16 @@ public class CompressionProgressController extends AbstractProgressController {
     @FXML
     private ProgressBar progressBar;
 
-    private String getBinaryPath() {
-        if (prefs.getBoolean(Constants.USE_DEFAULT_FFMPEG_KEY, true))
-            return Loader.load(org.bytedeco.ffmpeg.ffmpeg.class);
-        return prefs.get(Constants.FFMPEG_LOCATION_KEY, Loader.load(org.bytedeco.ffmpeg.ffmpeg.class));
-    }
-
     private String getAudioCodec() {
         return AudioCodec.getValue(prefs.get(Constants.AUDIO_CODEC_KEY, Constants.DEFAULT_AUDIO_CODEC_VALUE.getLabel()));
     }
 
     private String getPreset() {
         return Preset.getValue(prefs.get(Constants.PRESET_KEY, Constants.DEFAULT_PRESET_VALUE.getLabel()));
+    }
+
+    private String getExtension() {
+        return prefs.get(Constants.VIDEO_EXTENSION_KEY, Constants.DEFAULT_VIDEO_EXTENSION_VALUE);
     }
 
     private int getCrf() {
@@ -64,9 +62,12 @@ public class CompressionProgressController extends AbstractProgressController {
 
         setRunning(true);
         updateLabel("0%");
+
+        String extension = getExtension();
         for (Video video : videos) {
-            ProcessBuilder builder = new ProcessBuilder(getBinaryPath(), "-i", video.getPath(), "-c:v", "h264",
-                    "-c:a", getAudioCodec(), "-preset", getPreset(), "-crf", String.valueOf(getCrf()), getContainFolder() + File.separator + video.getName() + ".mp4");
+            ProcessBuilder builder = new ProcessBuilder(VideoUtils.getBinaryPath(), "-i", video.getPath(), "-c:v", "h264",
+                    "-c:a", getAudioCodec(), "-preset", getPreset(), "-crf", String.valueOf(getCrf()),
+                    getContainFolder() + File.separator + video.getName() + (extension.equals(Constants.DEFAULT_VIDEO_EXTENSION_VALUE) ? video.getExtension() : "." + extension));
             builder.redirectErrorStream(true);
 
             Task<Double> task = new Task<>() {

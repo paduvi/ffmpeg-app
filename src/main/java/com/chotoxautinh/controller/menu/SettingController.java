@@ -4,7 +4,9 @@ import com.chotoxautinh.conf.AppConfig;
 import com.chotoxautinh.conf.Constants;
 import com.chotoxautinh.controller.AbstractController;
 import com.chotoxautinh.model.AudioCodec;
+import com.chotoxautinh.model.Direction;
 import com.chotoxautinh.model.Preset;
+import com.chotoxautinh.util.VideoUtils;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -14,6 +16,7 @@ import javafx.stage.FileChooser;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.prefs.Preferences;
@@ -41,6 +44,9 @@ public class SettingController extends AbstractController {
     private ComboBox<String> presetComboBox;
 
     @FXML
+    private ComboBox<String> videoExtComboBox;
+
+    @FXML
     private TextField outputDestinationField;
 
     @FXML
@@ -50,9 +56,13 @@ public class SettingController extends AbstractController {
     private Slider crfSlider;
 
     @FXML
-    private void initialize() {
+    private void initialize() throws IOException, InterruptedException {
         audioCodecComboBox.getItems().addAll(Arrays.stream(AudioCodec.values()).map(AudioCodec::getLabel).toList());
         audioCodecComboBox.setValue(prefs.get(Constants.AUDIO_CODEC_KEY, Constants.DEFAULT_AUDIO_CODEC_VALUE.getLabel()));
+
+        videoExtComboBox.getItems().addFirst(Constants.DEFAULT_VIDEO_EXTENSION_VALUE);
+        videoExtComboBox.getItems().addAll(VideoUtils.getSupportedExtension(Direction.OUTPUT).keySet());
+        videoExtComboBox.setValue(prefs.get(Constants.VIDEO_EXTENSION_KEY, Constants.DEFAULT_VIDEO_EXTENSION_VALUE));
 
         presetComboBox.getItems().addAll(Arrays.stream(Preset.values()).map(Preset::getLabel).toList());
         presetComboBox.setValue(prefs.get(Constants.PRESET_KEY, Constants.DEFAULT_PRESET_VALUE.getLabel()));
@@ -126,6 +136,7 @@ public class SettingController extends AbstractController {
         useDefCkBox.setSelected(true);
         ffmpegLocationField.clear();
         audioCodecComboBox.setValue(Constants.DEFAULT_AUDIO_CODEC_VALUE.getLabel());
+        videoExtComboBox.setValue(Constants.DEFAULT_VIDEO_EXTENSION_VALUE);
         presetComboBox.setValue(Constants.DEFAULT_PRESET_VALUE.getLabel());
         crfSlider.setValue(Constants.DEFAULT_CRF_VALUE);
         outputDestinationField.setText(Constants.DEFAULT_CONTAINER_VALUE);
@@ -147,6 +158,7 @@ public class SettingController extends AbstractController {
         }
         prefs.putBoolean(Constants.USE_DEFAULT_FFMPEG_KEY, useDefCkBox.isSelected());
         prefs.put(Constants.AUDIO_CODEC_KEY, audioCodecComboBox.getValue());
+        prefs.put(Constants.VIDEO_EXTENSION_KEY, videoExtComboBox.getValue());
         prefs.put(Constants.PRESET_KEY, presetComboBox.getValue());
         prefs.putInt(Constants.CRF_KEY, (int) crfSlider.getValue());
         prefs.put(Constants.CONTAINER_KEY, outputDestinationField.getText());

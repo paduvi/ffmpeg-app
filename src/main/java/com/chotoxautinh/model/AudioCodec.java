@@ -4,9 +4,9 @@ import lombok.Getter;
 
 @Getter
 public enum AudioCodec {
+    COPY("COPY", "copy"),
     AAC("AAC", "aac"),
-    MP3("MP3", "libmp3lame"),
-    COPY("COPY", "copy");
+    MP3("MP3", "libmp3lame");
 
     private final String label;
     private final String value;

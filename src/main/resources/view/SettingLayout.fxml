@@ -40,18 +40,23 @@
       <Button fx:id="outputDestinationBtn" defaultButton="true" layoutY="45.0" mnemonicParsing="false"
               onAction="#handleOpen" text="..." AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="0.0"/>
    </AnchorPane>
+    <AnchorPane prefWidth="586.0">
+        <Label layoutX="15.0" layoutY="90.0" text="File Extension:" AnchorPane.topAnchor="0.0"/>
+        <ComboBox fx:id="videoExtComboBox" layoutX="160.0" layoutY="90.0" prefWidth="150.0"
+                  AnchorPane.topAnchor="0.0"/>
+    </AnchorPane>
    <AnchorPane prefWidth="586.0">
-      <Label layoutX="15.0" layoutY="90.0" text="Audio Codec:" AnchorPane.topAnchor="0.0"/>
-      <ComboBox fx:id="audioCodecComboBox" layoutX="160.0" layoutY="90.0" prefWidth="150.0"
+      <Label layoutX="15.0" layoutY="140.0" text="Audio Codec:" AnchorPane.topAnchor="0.0"/>
+      <ComboBox fx:id="audioCodecComboBox" layoutX="160.0" layoutY="140.0" prefWidth="150.0"
                 AnchorPane.topAnchor="0.0"/>
    </AnchorPane>
    <AnchorPane prefWidth="586.0">
-      <Label layoutX="15.0" layoutY="140.0" text="Preset:" AnchorPane.topAnchor="0.0"/>
-      <ComboBox fx:id="presetComboBox" layoutX="160.0" layoutY="140.0" prefWidth="150.0" AnchorPane.topAnchor="0.0"/>
+      <Label layoutX="15.0" layoutY="190.0" text="Preset:" AnchorPane.topAnchor="0.0"/>
+      <ComboBox fx:id="presetComboBox" layoutX="160.0" layoutY="190.0" prefWidth="150.0" AnchorPane.topAnchor="0.0"/>
    </AnchorPane>
    <AnchorPane prefWidth="586.0">
-      <Label layoutX="15.0" layoutY="190.0" text="Constant Rate Factor:" AnchorPane.topAnchor="0.0"/>
-      <Slider fx:id="crfSlider" blockIncrement="1.0" layoutX="160.0" layoutY="190.0" majorTickUnit="5.0" max="51.0"
+      <Label layoutX="15.0" layoutY="240.0" text="Constant Rate Factor:" AnchorPane.topAnchor="0.0"/>
+      <Slider fx:id="crfSlider" blockIncrement="1.0" layoutX="160.0" layoutY="240.0" majorTickUnit="5.0" max="51.0"
               prefHeight="38.0" prefWidth="413.0" showTickLabels="true" showTickMarks="true" value="23.0"
               AnchorPane.topAnchor="0.0"/>
    </AnchorPane>

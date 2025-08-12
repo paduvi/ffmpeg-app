@@ -1,8 +1,10 @@
 package com.chotoxautinh.controller.compression;
 
 import com.chotoxautinh.controller.AbstractController;
+import com.chotoxautinh.model.Direction;
 import com.chotoxautinh.model.Video;
 import com.chotoxautinh.util.AppUtils;
+import com.chotoxautinh.util.VideoUtils;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -21,10 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Slf4j
 public class VideoCompressionController extends AbstractController {
@@ -72,44 +71,31 @@ public class VideoCompressionController extends AbstractController {
         Button button = (Button) event.getSource();
         button.setDisable(true);
 
-        FileChooser fileChooser = new FileChooser();
+        try {
+            // Set extension filter
+            FileChooser fileChooser = new FileChooser();
 
-        // Set extension filter
-        fileChooser.getExtensionFilters()
-                .add(new FileChooser.ExtensionFilter("MPEG (.mpeg,mp4,mp3)", "*.mpeg", "*.mp4", "*.mp3"));
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("QuickTime File Format (.mov)", "*.mov"));
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("AVI (.avi)", "*.avi"));
-        fileChooser.getExtensionFilters()
-                .add(new FileChooser.ExtensionFilter("Ogg Video (.ogg,ogv)", "*.ogv", "*.ogg"));
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("GIF (.gif)", "*.gif"));
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Flash Video (.flv)", "*.flv"));
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("M4V (.m4v)", "*.m4v"));
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Windows Media Video (.wmv)", "*.wmv"));
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("WebM (.webm)", "*.webm"));
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Matroska (.mkv)", "*.mkv"));
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Vob (.vob)", "*.vob"));
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Dirac (.dirac)", "*.dirac"));
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("RealMedia (.rm)", "*.rm"));
-        fileChooser.getExtensionFilters()
-                .add(new FileChooser.ExtensionFilter("Advanced Systems Format (.asf)", "*.asf"));
-        fileChooser.getExtensionFilters()
-                .add(new FileChooser.ExtensionFilter("Material Exchange Format (.mxf)", "*.mxf"));
-        fileChooser.getExtensionFilters()
-                .add(new FileChooser.ExtensionFilter("Nullsoft Streaming Video (.nsv)", "*.nsv"));
+            List<String> allExtensions = new LinkedList<>();
+            for (Map.Entry<String, String> entry : VideoUtils.getSupportedExtension(Direction.INPUT).entrySet()) {
+                allExtensions.addAll(Arrays.stream(entry.getKey().split(","))
+                        .map(String::trim)
+                        .map(ext -> "*." + ext)
+                        .toList());
+            }
+            fileChooser.getExtensionFilters().addFirst(new FileChooser.ExtensionFilter("Supported Video Files (*.mp4, *.mov, *.avi, etc.)", allExtensions));
 
-        List<String> allExtensions = new LinkedList<>();
-        for (FileChooser.ExtensionFilter extensionFilter : fileChooser.getExtensionFilters()) {
-            allExtensions.addAll(extensionFilter.getExtensions());
+            // Show the open file dialog
+            List<File> files = fileChooser.showOpenMultipleDialog(getStage());
+
+            if (files != null && !files.isEmpty()) {
+                loadVideoDataFromFiles(files);
+            }
+        } catch (IOException | InterruptedException e) {
+            log.error("Error handleOpen: {}", e.getMessage(), e);
+            AppUtils.alertError(e);
+        } finally {
+            button.setDisable(false);
         }
-        fileChooser.getExtensionFilters().addFirst(new FileChooser.ExtensionFilter("All", allExtensions));
-
-        // Show the open file dialog
-        List<File> files = fileChooser.showOpenMultipleDialog(getStage());
-
-        if (files != null && !files.isEmpty()) {
-            loadVideoDataFromFiles(files);
-        }
-        button.setDisable(false);
     }
 
     @FXML

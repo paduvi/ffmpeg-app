@@ -7,7 +7,10 @@ import java.io.File;
 
 public class Constants {
     public static final String AUDIO_CODEC_KEY = "AUDIO_CODEC";
-    public static final AudioCodec DEFAULT_AUDIO_CODEC_VALUE = AudioCodec.AAC;
+    public static final AudioCodec DEFAULT_AUDIO_CODEC_VALUE = AudioCodec.COPY;
+
+    public static final String VIDEO_EXTENSION_KEY = "VIDEO_EXTENSION";
+    public static final String DEFAULT_VIDEO_EXTENSION_VALUE = "COPY";
 
     public static final String PRESET_KEY = "PRESET";
     public static final Preset DEFAULT_PRESET_VALUE = Preset.MEDIUM;
