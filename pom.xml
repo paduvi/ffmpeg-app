@@ -16,9 +16,6 @@
         <main.class>com.chotoxautinh.Main</main.class>
         <javafx.maven.plugin.version>0.0.8</javafx.maven.plugin.version>
         <slf4j.version>2.0.17</slf4j.version>
-        <application.name>${project.name}</application.name>
-        <application.version>${project.version}</application.version>
-        <application.vendor>${project.organization.name}</application.vendor>
         <javacpp.version>1.5.7</javacpp.version>
         <ffmpeg.version>5.0</ffmpeg.version>
         <nd4j.version>1.0.0-M2.1</nd4j.version>
@@ -106,7 +103,7 @@
             <artifactId>onnxruntime</artifactId>
             <!-- Use the below artifactId if your machine has GPU (CUDA). Supported Platform: Windows x64, Linux x64 -->
             <!-- <artifactId>onnxruntime_gpu</artifactId> -->
-            <version>1.22.0</version>
+            <version>1.20.0</version>
         </dependency>
 
         <!-- ND4J -->
