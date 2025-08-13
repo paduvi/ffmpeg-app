@@ -216,9 +216,9 @@ public class CuttingProgressController extends AbstractProgressController {
         super.handleCancel();
         try {
             session.close();
+            env.close();
         } catch (OrtException ignored) {
         }
-        env.close();
     }
 
     @Override
@@ -226,9 +226,9 @@ public class CuttingProgressController extends AbstractProgressController {
         super.done();
         try {
             session.close();
+            env.close();
         } catch (OrtException ignored) {
         }
-        env.close();
     }
 
     private void batchProcessing(

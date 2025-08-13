@@ -53,7 +53,7 @@ public class VideoUtils {
 
             while ((line = reader.readLine()) != null) {
                 if (!startParsing) {
-                    if (line.contains("---")) {
+                    if (line.strip().startsWith("--")) {
                         startParsing = true;
                     }
                     continue;

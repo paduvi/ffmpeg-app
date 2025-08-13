@@ -19,8 +19,9 @@
         <application.name>${project.name}</application.name>
         <application.version>${project.version}</application.version>
         <application.vendor>${project.organization.name}</application.vendor>
-        <javacpp.version>1.5.12</javacpp.version>
-        <ffmpeg.version>7.1.1</ffmpeg.version>
+        <javacpp.version>1.5.7</javacpp.version>
+        <ffmpeg.version>5.0</ffmpeg.version>
+        <nd4j.version>1.0.0-M2.1</nd4j.version>
         <lombok.version>1.18.38</lombok.version>
 
         <!-- assigned by profile -->
@@ -40,7 +41,7 @@
             <version>${javafx.version}</version>
         </dependency>
 
-        <!-- FFMPEG -->
+        <!-- Used for FFMPEG and ND4J -->
         <dependency>
             <groupId>org.bytedeco</groupId>
             <artifactId>javacpp</artifactId>
@@ -53,6 +54,7 @@
             <classifier>${native.classifier}</classifier>
         </dependency>
 
+        <!-- FFMPEG -->
         <dependency>
             <groupId>org.bytedeco</groupId>
             <artifactId>ffmpeg</artifactId>
@@ -103,7 +105,7 @@
             <groupId>com.microsoft.onnxruntime</groupId>
             <artifactId>onnxruntime</artifactId>
             <!-- Use the below artifactId if your machine has GPU (CUDA). Supported Platform: Windows x64, Linux x64 -->
-            <!--            <artifactId>onnxruntime_gpu</artifactId>-->
+            <!-- <artifactId>onnxruntime_gpu</artifactId> -->
             <version>1.22.0</version>
         </dependency>
 
@@ -111,8 +113,7 @@
         <dependency>
             <groupId>org.nd4j</groupId>
             <artifactId>nd4j-native</artifactId>
-            <version>1.0.0-M2.1</version>
-            <classifier>${native.classifier}</classifier>
+            <version>${nd4j.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>commons-io</groupId>
@@ -139,6 +140,12 @@
                     <artifactId>jna-platform</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.nd4j</groupId>
+            <artifactId>nd4j-native</artifactId>
+            <version>${nd4j.version}</version>
+            <classifier>${native.classifier}</classifier>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
@@ -231,7 +238,7 @@
             <id>linux-x86_64</id>
             <activation>
                 <os>
-                    <family>unix</family>
+                    <family>linux</family>
                     <arch>x86_64</arch>
                 </os>
             </activation>
@@ -245,7 +252,7 @@
             <id>linux-arm64</id>
             <activation>
                 <os>
-                    <family>unix</family>
+                    <family>linux</family>
                     <arch>aarch64</arch>
                 </os>
             </activation>
