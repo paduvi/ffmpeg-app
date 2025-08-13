@@ -1,45 +1,69 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.chotoxautinh</groupId>
-	<artifactId>ffmpeg-app</artifactId>
-	<version>1.0.0</version>
-	<name>MPEGApp</name>
-	<organization>
-		<name>Dogy Inc.</name>
-	</organization>
-	<properties>
-	    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-	    <javafx.version>21.0.8</javafx.version>
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.chotoxautinh</groupId>
+    <artifactId>ffmpeg-app</artifactId>
+    <version>1.0.0</version>
+    <name>MPEGApp</name>
+    <organization>
+        <name>Dogy Inc.</name>
+    </organization>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <javafx.version>21.0.8</javafx.version>
         <maven.compiler.source>21</maven.compiler.source>
-    	<maven.compiler.target>21</maven.compiler.target>
-    	<main.class>com.chotoxautinh.Main</main.class>
-    	<javafx.maven.plugin.version>0.0.8</javafx.maven.plugin.version>
+        <maven.compiler.target>21</maven.compiler.target>
+        <main.class>com.chotoxautinh.Main</main.class>
+        <javafx.maven.plugin.version>0.0.8</javafx.maven.plugin.version>
         <slf4j.version>2.0.17</slf4j.version>
         <application.name>${project.name}</application.name>
         <application.version>${project.version}</application.version>
         <application.vendor>${project.organization.name}</application.vendor>
+        <javacpp.version>1.5.12</javacpp.version>
+        <ffmpeg.version>7.1.1</ffmpeg.version>
+        <lombok.version>1.18.38</lombok.version>
+
+        <!-- assigned by profile -->
+        <native.classifier/>
     </properties>
-	
-	<dependencies>
-		<!-- JavaFX Modules -->
-	    <dependency>
-	        <groupId>org.openjfx</groupId>
-	        <artifactId>javafx-controls</artifactId>
-	        <version>${javafx.version}</version>
-	    </dependency>
-	    <dependency>
-	        <groupId>org.openjfx</groupId>
-	        <artifactId>javafx-fxml</artifactId>
-	        <version>${javafx.version}</version>
-	    </dependency>
-	    
-		<!-- FFMPEG -->
-		<dependency>
-		    <groupId>org.bytedeco</groupId>
-		    <artifactId>ffmpeg-platform</artifactId>
-		    <version>7.1-1.5.11</version>
-		</dependency>
+
+    <dependencies>
+        <!-- JavaFX Modules -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-fxml</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+
+        <!-- FFMPEG -->
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>javacpp</artifactId>
+            <version>${javacpp.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>javacpp</artifactId>
+            <version>${javacpp.version}</version>
+            <classifier>${native.classifier}</classifier>
+        </dependency>
+
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>ffmpeg</artifactId>
+            <version>${ffmpeg.version}-${javacpp.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>ffmpeg</artifactId>
+            <version>${ffmpeg.version}-${javacpp.version}</version>
+            <classifier>${native.classifier}</classifier>
+        </dependency>
 
         <!-- Database -->
         <dependency>
@@ -79,15 +103,16 @@
             <groupId>com.microsoft.onnxruntime</groupId>
             <artifactId>onnxruntime</artifactId>
             <!-- Use the below artifactId if your machine has GPU (CUDA). Supported Platform: Windows x64, Linux x64 -->
-<!--            <artifactId>onnxruntime_gpu</artifactId>-->
+            <!--            <artifactId>onnxruntime_gpu</artifactId>-->
             <version>1.22.0</version>
         </dependency>
 
         <!-- ND4J -->
         <dependency>
             <groupId>org.nd4j</groupId>
-            <artifactId>nd4j-native-platform</artifactId>
+            <artifactId>nd4j-native</artifactId>
             <version>1.0.0-M2.1</version>
+            <classifier>${native.classifier}</classifier>
             <exclusions>
                 <exclusion>
                     <groupId>commons-io</groupId>
@@ -130,7 +155,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.38</version>
+            <version>${lombok.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -143,9 +168,95 @@
         </dependency>
 
     </dependencies>
-	
-	<build>
-		<finalName>DogyMPEGApp</finalName>
+
+    <profiles>
+        <!-- Windows x86_64 -->
+        <profile>
+            <id>windows-x86_64</id>
+            <activation>
+                <os>
+                    <family>Windows</family>
+                    <arch>amd64</arch>
+                </os>
+            </activation>
+            <properties>
+                <native.classifier>windows-x86_64</native.classifier>
+            </properties>
+        </profile>
+
+        <!-- Windows ARM64 -->
+        <profile>
+            <id>windows-arm64</id>
+            <activation>
+                <os>
+                    <family>Windows</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <native.classifier>windows-arm64</native.classifier>
+            </properties>
+        </profile>
+
+        <!-- macOS x86_64 -->
+        <profile>
+            <id>macosx-x86_64</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                    <arch>x86_64</arch>
+                </os>
+            </activation>
+            <properties>
+                <native.classifier>macosx-x86_64</native.classifier>
+            </properties>
+        </profile>
+
+        <!-- macOS ARM64 (Apple Silicon) -->
+        <profile>
+            <id>macosx-arm64</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <native.classifier>macosx-arm64</native.classifier>
+            </properties>
+        </profile>
+
+        <!-- Linux x86_64 -->
+        <profile>
+            <id>linux-x86_64</id>
+            <activation>
+                <os>
+                    <family>unix</family>
+                    <arch>x86_64</arch>
+                </os>
+            </activation>
+            <properties>
+                <native.classifier>linux-x86_64</native.classifier>
+            </properties>
+        </profile>
+
+        <!-- Linux ARM64 -->
+        <profile>
+            <id>linux-arm64</id>
+            <activation>
+                <os>
+                    <family>unix</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <native.classifier>linux-arm64</native.classifier>
+            </properties>
+        </profile>
+    </profiles>
+
+    <build>
+        <finalName>DogyMPEGApp</finalName>
         <resources>
             <!-- Resources with filtering -->
             <resource>
@@ -164,15 +275,32 @@
                     <exclude>application.properties</exclude> <!-- Exclude this file since it's filtered above -->
                 </excludes>
             </resource>
-
         </resources>
+
+        <extensions>
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>1.7.1</version>
+            </extension>
+        </extensions>
 
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
@@ -181,29 +309,77 @@
                     <mainClass>${main.class}</mainClass>
                 </configuration>
             </plugin>
-            
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <excludes>
+                        <exclude>**/test-classes/**</exclude>
+                    </excludes>
+                    <outputDirectory>${project.build.directory}/app</outputDirectory>
+                </configuration>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <version>3.4.0</version>
                 <executions>
                     <execution>
-                        <id>copy-dependencies</id>
+                        <id>copy-native-by-classifier</id>
                         <phase>package</phase>
                         <goals>
                             <goal>copy-dependencies</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.build.directory}/libs</outputDirectory>
-                            <overWriteReleases>false</overWriteReleases>
-                            <overWriteSnapshots>false</overWriteSnapshots>
-                            <overWriteIfNewer>true</overWriteIfNewer>
-                            <includeScope>compile</includeScope>
+                            <outputDirectory>${project.build.directory}/app/libs</outputDirectory>
                             <includeScope>runtime</includeScope>
+                            <includeClassifiers>${native.classifier}</includeClassifiers>
+                            <overWriteIfNewer>true</overWriteIfNewer>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <id>copy-plain-no-classifier</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/app/libs</outputDirectory>
+                            <includeScope>runtime</includeScope>
+                            <excludeClassifiers>*</excludeClassifiers>
+                            <overWriteIfNewer>true</overWriteIfNewer>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>copy-main-resources-to-staging</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/app</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/resources</directory>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
         </plugins>
-	</build>
+    </build>
 </project>

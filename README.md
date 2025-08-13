@@ -34,7 +34,7 @@ jlink \
 for type in "app-image" "dmg" "pkg"
 jpackage --type $type \
   --name DogyMpegApp \
-  --input target \
+  --input target/app \
   --main-jar DogyMPEGApp.jar \
   --main-class com.chotoxautinh.Main \
   --java-options "-Xmx2048m" \
@@ -80,7 +80,7 @@ jlink --module-path "$env:JAVA_HOME\jmods;$env:PATH_TO_FX_MODS" `
 $TYPES = @("app-image", "exe", "msi")
 foreach ($T in $TYPES) {
     jpackage --type $T `
-        --input target `
+        --input target/app `
         --name DogyMpegApp `
         --main-jar "DogyMPEGApp.jar" `
         --main-class "com.chotoxautinh.Main" `
