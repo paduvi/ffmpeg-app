@@ -1,6 +1,5 @@
 package com.chotoxautinh.controller.cutting;
 
-import ai.onnxruntime.OrtException;
 import com.chotoxautinh.conf.AppConfig;
 import com.chotoxautinh.conf.Constants;
 import com.chotoxautinh.controller.AbstractController;
@@ -330,7 +329,7 @@ public class VideoCuttingController extends AbstractController {
             controller.setVideos(list, sampleImagePath);
 
             dialogStage.show();
-        } catch (IOException | OrtException e) {
+        } catch (IOException e) {
             log.error("Error handleCut: {}", e.getMessage(), e);
             AppUtils.alertError(e);
         }

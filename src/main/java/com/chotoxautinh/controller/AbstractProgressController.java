@@ -63,7 +63,7 @@ public class AbstractProgressController extends AbstractController {
     }
 
     private void handleBtn() {
-        if (running) {
+        if (isRunning()) {
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("Confirmation Dialog");
             alert.setHeaderText("It seems that the process's still on running.");
@@ -87,7 +87,7 @@ public class AbstractProgressController extends AbstractController {
         btn.setText("Close");
         timeLabel.setText("Canceled!");
         getStage().setTitle("Canceled!");
-        running = false;
+        setRunning(false);
     }
 
     private void handleOpen() {
@@ -108,7 +108,7 @@ public class AbstractProgressController extends AbstractController {
     @Override
     public void setStage(Stage stage) {
         stage.setOnCloseRequest(event -> {
-            if (running) {
+            if (isRunning()) {
                 Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
                 alert.setTitle("Confirmation Dialog");
                 alert.setHeaderText("It seems that the process's still on running.");
@@ -145,6 +145,10 @@ public class AbstractProgressController extends AbstractController {
         this.running = running;
     }
 
+    protected boolean isRunning() {
+        return running;
+    }
+
     protected void done() {
         executor.shutdown();
 
@@ -152,6 +156,6 @@ public class AbstractProgressController extends AbstractController {
         openBtn.setVisible(true);
         btn.setText("Close");
         getStage().setTitle("Done!");
-        running = false;
+        setRunning(false);
     }
 }

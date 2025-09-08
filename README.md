@@ -22,7 +22,7 @@ We can manually create a custom runtime image and build the package afterward.
 ```
 # Set the path to JavaFX jmods
 export PATH_TO_FX_MODS=path/to/javafx-jmods
-export APP_VERSION=1.0.1
+export APP_VERSION=1.0.2
 
 # Create a custom runtime image
 jlink \
@@ -69,7 +69,7 @@ To use `exe` and `msi` options, you need to install [WiX Toolset](https://github
 ```
 # Set the path to JavaFX jmods
 $env:PATH_TO_FX_MODS="path/to/javafx-jmods"
-$env:APP_VERSION="1.0.1"
+$env:APP_VERSION="1.0.2"
 
 # Create a custom runtime image
 jlink --module-path "$env:JAVA_HOME\jmods;$env:PATH_TO_FX_MODS" `

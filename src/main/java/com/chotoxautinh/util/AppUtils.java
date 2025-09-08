@@ -15,4 +15,13 @@ public class AppUtils {
 
         alert.showAndWait();
     }
+
+    public static void alertError(String headerTitle, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Error");
+        alert.setHeaderText(headerTitle);
+        alert.setContentText(message);
+
+        alert.showAndWait();
+    }
 }
