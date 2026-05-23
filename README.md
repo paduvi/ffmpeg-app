@@ -55,21 +55,24 @@ jlink \
   --output jre
   
 # Build and package for different MacOSX types
-for type in "app-image" "dmg" "pkg"
-jpackage --type $type \
-  --name DogyMpegApp \
-  --input target/app \
-  --main-jar DogyMPEGApp.jar \
-  --main-class com.chotoxautinh.Main \
-  --java-options "-Xmx2048m" \
-  --runtime-image jre \
-  --app-version $APP_VERSION \
-  --vendor "Dogy Inc." \
-  --copyright "Copyright © 2016-$(date +%y) Dogy Inc." \
-  --mac-package-name "DogyMpegApp" \
-  --mac-package-identifier com.chotoxautinh \
-  --icon src/main/resources/icon.icns \
-  --dest dist/jpackage/mac
+YEAR_SHORT="$(date +%y)"
+for TYPE in app-image dmg pkg; do
+  echo "===> Building $TYPE"
+  jpackage --type "$TYPE" \
+    --name DogyMpegApp \
+    --input target/app \
+    --main-jar DogyMPEGApp.jar \
+    --main-class com.chotoxautinh.Main \
+    --java-options "-Xmx2048m" \
+    --runtime-image jre \
+    --app-version "$APP_VERSION" \
+    --vendor "Dogy Inc." \
+    --copyright "Copyright © 2016-${YEAR_SHORT} Dogy Inc." \
+    --mac-package-name "DogyMpegApp" \
+    --mac-package-identifier com.chotoxautinh \
+    --icon src/main/resources/icon.icns \
+    --dest dist/jpackage/mac
+done
 ```
 
 ### Windows
@@ -101,9 +104,11 @@ jlink --module-path "$env:JAVA_HOME\jmods;$env:PATH_TO_FX_MODS" `
       --output jre
       
 # Build and package for different Windows types
-$TYPES = @("app-image", "exe", "msi")
-foreach ($T in $TYPES) {
-    jpackage --type $T `
+$yearShort = (Get-Date).Year.ToString().Substring(2)
+$types = @("app-image", "exe", "msi")
+foreach ($t in $types) {
+    Write-Host "===> Building $t"
+    jpackage --type $t `
         --input target/app `
         --name DogyMpegApp `
         --main-jar "DogyMPEGApp.jar" `
@@ -113,8 +118,9 @@ foreach ($T in $TYPES) {
         --icon "src\main\resources\icon.ico" `
         --app-version "$env:APP_VERSION" `
         --vendor "Dogy Inc." `
-        --copyright "Copyright © 2016-$((Get-Date).Year.ToString().Substring(2)) Dogy Inc." `
+        --copyright "Copyright © 2016-$yearShort Dogy Inc." `
         --dest dist/jpackage/win
+    if ($LASTEXITCODE -ne 0) { throw "jpackage failed for type=$t" }
 }
 ```
 
