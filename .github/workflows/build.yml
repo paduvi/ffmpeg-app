@@ -15,49 +15,23 @@ on:
 
 env:
   JAVAFX_VERSION: '21.0.8'
-  # Phiên bản mặc định nếu không truyền qua workflow_dispatch và không phải tag
+  # Fallback version used when the run is not triggered by a tag and no
+  # workflow_dispatch input is provided.
   DEFAULT_APP_VERSION: '1.0.2'
 
 jobs:
-  build:
-    name: Build (${{ matrix.label }})
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # Windows x64 (x86_64)
-          - os: windows-latest
-            label: Windows-x64
-            jfx_platform: windows-x64
-            artifact_name: DogyMpegApp-Windows-x64
-
-          # macOS Intel (x86_64) - macos-13 là runner Intel cuối cùng GitHub còn cung cấp
-          - os: macos-13
-            label: macOS-Intel
-            jfx_platform: osx-x64
-            artifact_name: DogyMpegApp-macOS-Intel
-
-          # macOS Apple Silicon (arm64) - macos-14 / macos-latest đều là ARM64
-          - os: macos-14
-            label: macOS-AppleSilicon
-            jfx_platform: osx-aarch64
-            artifact_name: DogyMpegApp-macOS-AppleSilicon
-
+  # ===========================================================================
+  # Resolve the application version once so every downstream job sees the
+  # same value (tag > workflow_dispatch input > DEFAULT_APP_VERSION).
+  # ===========================================================================
+  prepare:
+    name: Resolve Version
+    runs-on: ubuntu-latest
+    outputs:
+      app_version: ${{ steps.resolve.outputs.version }}
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 21 (Temurin)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-          cache: 'maven'
-
       - name: Resolve APP_VERSION
-        shell: bash
+        id: resolve
         run: |
           if [[ -n "${{ github.event.inputs.app_version }}" ]]; then
             VERSION="${{ github.event.inputs.app_version }}"
@@ -66,33 +40,32 @@ jobs:
           else
             VERSION="${DEFAULT_APP_VERSION}"
           fi
-          echo "APP_VERSION=${VERSION}" >> "$GITHUB_ENV"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Using APP_VERSION=${VERSION}"
 
-      # -------- Download JavaFX jmods (Unix: macOS) --------
-      - name: Download JavaFX jmods (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          set -euo pipefail
-          URL="https://download2.gluonhq.com/openjfx/${JAVAFX_VERSION}/openjfx-${JAVAFX_VERSION}_${{ matrix.jfx_platform }}_bin-jmods.zip"
-          echo "Downloading: $URL"
-          curl -fL -o jfx-jmods.zip "$URL"
-          unzip -q jfx-jmods.zip
-          JFX_DIR="$(find . -maxdepth 1 -type d -name 'javafx-jmods-*' | head -n 1)"
-          if [[ -z "$JFX_DIR" ]]; then
-            echo "JavaFX jmods directory not found after extracting!"
-            exit 1
-          fi
-          ABS_PATH="$(cd "$JFX_DIR" && pwd)"
-          echo "PATH_TO_FX_MODS=${ABS_PATH}" >> "$GITHUB_ENV"
-          echo "JavaFX jmods at: ${ABS_PATH}"
+  # ===========================================================================
+  # Windows x64 build
+  # ===========================================================================
+  build-windows:
+    name: Build (Windows-x64)
+    needs: prepare
+    runs-on: windows-latest
+    env:
+      APP_VERSION: ${{ needs.prepare.outputs.app_version }}
+    steps:
+      - uses: actions/checkout@v4
 
-      # -------- Download JavaFX jmods (Windows) --------
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
       - name: Download JavaFX jmods (Windows)
-        if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $url = "https://download2.gluonhq.com/openjfx/$env:JAVAFX_VERSION/openjfx-$($env:JAVAFX_VERSION)_${{ matrix.jfx_platform }}_bin-jmods.zip"
+          $url = "https://download2.gluonhq.com/openjfx/$env:JAVAFX_VERSION/openjfx-$($env:JAVAFX_VERSION)_windows-x64_bin-jmods.zip"
           Write-Host "Downloading: $url"
           Invoke-WebRequest -Uri $url -OutFile jfx-jmods.zip
           Expand-Archive -Path jfx-jmods.zip -DestinationPath .
@@ -101,23 +74,11 @@ jobs:
           "PATH_TO_FX_MODS=$($jfxDir.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
           Write-Host "JavaFX jmods at: $($jfxDir.FullName)"
 
-      # -------- Build JAR + libs --------
       - name: Build with Maven
         shell: bash
         run: mvn -B -ntp clean package -DskipTests
 
-      # -------- Tạo custom JRE runtime image bằng jlink --------
-      - name: Create custom JRE (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          jlink \
-            --module-path "$JAVA_HOME/jmods:$PATH_TO_FX_MODS" \
-            --add-modules java.naming,java.sql,java.logging,javafx.controls,javafx.fxml \
-            --no-header-files --no-man-pages --strip-debug --compress=2 \
-            --output jre
-
-      - name: Create custom JRE (Windows)
-        if: runner.os == 'Windows'
+      - name: Create custom JRE
         shell: pwsh
         run: |
           jlink --module-path "$env:JAVA_HOME\jmods;$env:PATH_TO_FX_MODS" `
@@ -125,37 +86,9 @@ jobs:
                 --no-header-files --no-man-pages --strip-debug --compress=2 `
                 --output jre
 
-      # -------- Package cho macOS (app-image, dmg, pkg) --------
-      - name: Package for macOS
-        if: runner.os == 'macOS'
-        run: |
-          set -euo pipefail
-          mkdir -p dist/jpackage/mac
-          YEAR_SHORT="$(date +%y)"
-          for TYPE in app-image dmg pkg; do
-            echo "===> Building $TYPE"
-            jpackage --type "$TYPE" \
-              --name DogyMpegApp \
-              --input target/app \
-              --main-jar DogyMPEGApp.jar \
-              --main-class com.chotoxautinh.Main \
-              --java-options "-Xmx2048m" \
-              --runtime-image jre \
-              --app-version "$APP_VERSION" \
-              --vendor "Dogy Inc." \
-              --copyright "Copyright © 2016-${YEAR_SHORT} Dogy Inc." \
-              --mac-package-name "DogyMpegApp" \
-              --mac-package-identifier com.chotoxautinh \
-              --icon src/main/resources/icon.icns \
-              --dest dist/jpackage/mac
-          done
-          echo "----- macOS dist contents -----"
-          ls -la dist/jpackage/mac
-
-      # -------- Package cho Windows (app-image, exe, msi) --------
-      # Windows runner đã preinstall WiX Toolset → tạo được .exe/.msi
+      # WiX Toolset is preinstalled on windows-latest, so .exe and .msi work
+      # out of the box.
       - name: Package for Windows
-        if: runner.os == 'Windows'
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist\jpackage\win | Out-Null
@@ -180,34 +113,105 @@ jobs:
           Write-Host "----- Windows dist contents -----"
           Get-ChildItem -Recurse dist\jpackage\win | Select-Object FullName
 
-      # -------- Upload artifacts --------
-      - name: Upload macOS artifacts
-        if: runner.os == 'macOS'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}
-          path: |
-            dist/jpackage/mac/*.dmg
-            dist/jpackage/mac/*.pkg
-          if-no-files-found: error
-          retention-days: 30
-
       - name: Upload Windows artifacts
-        if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
+          name: DogyMpegApp-Windows-x64
           path: |
             dist/jpackage/win/*.exe
             dist/jpackage/win/*.msi
           if-no-files-found: error
           retention-days: 30
 
-  # ====== Job tạo GitHub Release khi push tag v* ======
+  # ===========================================================================
+  # macOS Apple Silicon build (arm64). Uses the shared composite action.
+  # macos-14 / macos-latest are ARM64.
+  # ===========================================================================
+  build-macos-apple-silicon:
+    name: Build (macOS-AppleSilicon)
+    needs: prepare
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-macos-package
+        with:
+          javafx-version: ${{ env.JAVAFX_VERSION }}
+          jfx-platform: osx-aarch64
+          app-version: ${{ needs.prepare.outputs.app_version }}
+          artifact-name: DogyMpegApp-macOS-AppleSilicon
+
+  # ===========================================================================
+  # macOS Intel build - PRIMARY attempt on macos-15-intel.
+  #
+  # continue-on-error: true keeps the workflow green even if this job fails.
+  # The job exposes `steps.build.outcome` as a job output so the fallback job
+  # can detect a real build failure (the job's `result` would always be
+  # 'success' because of continue-on-error).
+  # ===========================================================================
+  build-macos-intel-primary:
+    name: Build (macOS-Intel, primary)
+    needs: prepare
+    runs-on: macos-15-intel
+    continue-on-error: true
+    outputs:
+      build_outcome: ${{ steps.build.outcome }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: build
+        uses: ./.github/actions/build-macos-package
+        with:
+          javafx-version: ${{ env.JAVAFX_VERSION }}
+          jfx-platform: osx-x64
+          app-version: ${{ needs.prepare.outputs.app_version }}
+          artifact-name: DogyMpegApp-macOS-Intel
+
+  # ===========================================================================
+  # macOS Intel build - FALLBACK attempt on macos-26-intel.
+  #
+  # Runs only when the primary build actually failed (detected via the
+  # primary's build_outcome output). Also continue-on-error: true so a
+  # double failure doesn't fail the workflow.
+  #
+  # Uses the same artifact name as the primary; there is no conflict because
+  # the primary's upload step never ran if the primary failed.
+  # ===========================================================================
+  build-macos-intel-fallback:
+    name: Build (macOS-Intel, fallback)
+    needs:
+      - prepare
+      - build-macos-intel-primary
+    if: ${{ needs.build-macos-intel-primary.outputs.build_outcome == 'failure' }}
+    runs-on: macos-26-intel
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-macos-package
+        with:
+          javafx-version: ${{ env.JAVAFX_VERSION }}
+          jfx-platform: osx-x64
+          app-version: ${{ needs.prepare.outputs.app_version }}
+          artifact-name: DogyMpegApp-macOS-Intel
+
+  # ===========================================================================
+  # Publish a GitHub Release whenever a v* tag is pushed.
+  #
+  # Requirements:
+  #   - Windows AND macOS Apple Silicon must succeed.
+  #   - macOS Intel is optional: if both primary and fallback fail, the
+  #     release is still created (just without the Intel artifact).
+  # ===========================================================================
   release:
     name: Create GitHub Release
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs:
+      - build-windows
+      - build-macos-apple-silicon
+      - build-macos-intel-primary
+      - build-macos-intel-fallback
+    if: |
+      always() &&
+      startsWith(github.ref, 'refs/tags/v') &&
+      needs.build-windows.result == 'success' &&
+      needs.build-macos-apple-silicon.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write

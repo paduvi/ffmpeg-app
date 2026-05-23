@@ -1,0 +1,92 @@
+name: 'Build macOS Package'
+description: 'Build macOS app-image/dmg/pkg using jpackage with a custom JRE.'
+
+inputs:
+  javafx-version:
+    description: 'JavaFX version (e.g. 21.0.8)'
+    required: true
+  jfx-platform:
+    description: 'JavaFX platform identifier: osx-x64 (Intel) or osx-aarch64 (Apple Silicon)'
+    required: true
+  app-version:
+    description: 'Application version to embed in the package'
+    required: true
+  artifact-name:
+    description: 'Name of the uploaded artifact'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Set up JDK 21 (Temurin)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+        cache: 'maven'
+
+    - name: Download JavaFX jmods
+      shell: bash
+      run: |
+        set -euo pipefail
+        URL="https://download2.gluonhq.com/openjfx/${{ inputs.javafx-version }}/openjfx-${{ inputs.javafx-version }}_${{ inputs.jfx-platform }}_bin-jmods.zip"
+        echo "Downloading: $URL"
+        curl -fL -o jfx-jmods.zip "$URL"
+        unzip -q jfx-jmods.zip
+        JFX_DIR="$(find . -maxdepth 1 -type d -name 'javafx-jmods-*' | head -n 1)"
+        if [[ -z "$JFX_DIR" ]]; then
+          echo "JavaFX jmods directory not found after extracting!"
+          exit 1
+        fi
+        ABS_PATH="$(cd "$JFX_DIR" && pwd)"
+        echo "PATH_TO_FX_MODS=${ABS_PATH}" >> "$GITHUB_ENV"
+        echo "JavaFX jmods at: ${ABS_PATH}"
+
+    - name: Build with Maven
+      shell: bash
+      run: mvn -B -ntp clean package -DskipTests
+
+    - name: Create custom JRE
+      shell: bash
+      run: |
+        jlink \
+          --module-path "$JAVA_HOME/jmods:$PATH_TO_FX_MODS" \
+          --add-modules java.naming,java.sql,java.logging,javafx.controls,javafx.fxml \
+          --no-header-files --no-man-pages --strip-debug --compress=2 \
+          --output jre
+
+    - name: Package for macOS
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p dist/jpackage/mac
+        YEAR_SHORT="$(date +%y)"
+        for TYPE in app-image dmg pkg; do
+          echo "===> Building $TYPE"
+          jpackage --type "$TYPE" \
+            --name DogyMpegApp \
+            --input target/app \
+            --main-jar DogyMPEGApp.jar \
+            --main-class com.chotoxautinh.Main \
+            --java-options "-Xmx2048m" \
+            --runtime-image jre \
+            --app-version "${{ inputs.app-version }}" \
+            --vendor "Dogy Inc." \
+            --copyright "Copyright © 2016-${YEAR_SHORT} Dogy Inc." \
+            --mac-package-name "DogyMpegApp" \
+            --mac-package-identifier com.chotoxautinh \
+            --icon src/main/resources/icon.icns \
+            --dest dist/jpackage/mac
+        done
+        echo "----- macOS dist contents -----"
+        ls -la dist/jpackage/mac
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: |
+          dist/jpackage/mac/*.dmg
+          dist/jpackage/mac/*.pkg
+        if-no-files-found: error
+        retention-days: 30
