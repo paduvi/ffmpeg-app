@@ -1,11 +1,12 @@
 name: Build Multi-Platform Packages
 
 on:
+  # Automatic trigger: only when a v* tag is pushed.
   push:
-    branches: [main]
     tags: ['v*']
-  pull_request:
-    branches: [main]
+  # Manual trigger (not automatic) — kept so we can re-run a build from the
+  # Actions tab without creating a tag. The release job is still gated on
+  # the ref being a v* tag, so dispatch runs will NOT create a release.
   workflow_dispatch:
     inputs:
       app_version:
@@ -113,6 +114,22 @@ jobs:
           Write-Host "----- Windows dist contents -----"
           Get-ChildItem -Recurse dist\jpackage\win | Select-Object FullName
 
+      # Append the arch label to output filenames for consistency with the
+      # macOS artifacts (and to make the GitHub Release file list clearer).
+      # Example: DogyMpegApp-1.0.2.exe -> DogyMpegApp-1.0.2-windows-x64.exe
+      - name: Rename output files with arch suffix
+        shell: pwsh
+        run: |
+          $archLabel = "windows-x64"
+          Get-ChildItem -Path "dist\jpackage\win" -File |
+            Where-Object { $_.Extension -in '.exe', '.msi' } |
+            ForEach-Object {
+              $newName = "$($_.BaseName)-$archLabel$($_.Extension)"
+              Write-Host "Renaming: $($_.Name) -> $newName"
+              Rename-Item -Path $_.FullName -NewName $newName
+            }
+          Get-ChildItem -Path "dist\jpackage\win" -File
+
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -138,6 +155,7 @@ jobs:
           javafx-version: ${{ env.JAVAFX_VERSION }}
           jfx-platform: osx-aarch64
           app-version: ${{ needs.prepare.outputs.app_version }}
+          arch-label: macos-arm64
           artifact-name: DogyMpegApp-macOS-AppleSilicon
 
   # ===========================================================================
@@ -163,6 +181,7 @@ jobs:
           javafx-version: ${{ env.JAVAFX_VERSION }}
           jfx-platform: osx-x64
           app-version: ${{ needs.prepare.outputs.app_version }}
+          arch-label: macos-x64
           artifact-name: DogyMpegApp-macOS-Intel
 
   # ===========================================================================
@@ -190,6 +209,7 @@ jobs:
           javafx-version: ${{ env.JAVAFX_VERSION }}
           jfx-platform: osx-x64
           app-version: ${{ needs.prepare.outputs.app_version }}
+          arch-label: macos-x64
           artifact-name: DogyMpegApp-macOS-Intel
 
   # ===========================================================================

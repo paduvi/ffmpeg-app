@@ -11,6 +11,9 @@ inputs:
   app-version:
     description: 'Application version to embed in the package'
     required: true
+  arch-label:
+    description: 'Architecture label appended to output filenames (e.g. macos-x64, macos-arm64)'
+    required: true
   artifact-name:
     description: 'Name of the uploaded artifact'
     required: true
@@ -80,6 +83,25 @@ runs:
         done
         echo "----- macOS dist contents -----"
         ls -la dist/jpackage/mac
+
+    # Append the arch label to output filenames so Intel and Apple Silicon
+    # artifacts do not collide when attached to the same GitHub Release.
+    # Example: DogyMpegApp-1.0.2.dmg -> DogyMpegApp-1.0.2-macos-arm64.dmg
+    - name: Rename output files with arch suffix
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd dist/jpackage/mac
+        shopt -s nullglob
+        for f in *.dmg *.pkg; do
+          name="${f%.*}"
+          ext="${f##*.}"
+          new="${name}-${{ inputs.arch-label }}.${ext}"
+          echo "Renaming: $f -> $new"
+          mv "$f" "$new"
+        done
+        echo "----- renamed contents -----"
+        ls -la
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
