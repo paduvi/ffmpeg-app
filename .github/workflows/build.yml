@@ -1,255 +1,91 @@
-name: Build Multi-Platform Packages
+name: Build & Release
 
 on:
-  # Automatic trigger: only when a v* tag is pushed.
   push:
     tags: ['v*']
-  # Manual trigger (not automatic) — kept so we can re-run a build from the
-  # Actions tab without creating a tag. The release job is still gated on
-  # the ref being a v* tag, so dispatch runs will NOT create a release.
   workflow_dispatch:
     inputs:
-      app_version:
-        description: 'Application version (override pom.xml version)'
+      version:
+        description: 'Version override (e.g. 1.2.3). Defaults to package.json version.'
         required: false
         default: ''
 
-env:
-  JAVAFX_VERSION: '21.0.8'
-  # Fallback version used when the run is not triggered by a tag and no
-  # workflow_dispatch input is provided.
-  DEFAULT_APP_VERSION: '1.0.2'
-
 jobs:
-  # ===========================================================================
-  # Resolve the application version once so every downstream job sees the
-  # same value (tag > workflow_dispatch input > DEFAULT_APP_VERSION).
-  # ===========================================================================
-  prepare:
-    name: Resolve Version
-    runs-on: ubuntu-latest
-    outputs:
-      app_version: ${{ steps.resolve.outputs.version }}
-    steps:
-      - name: Resolve APP_VERSION
-        id: resolve
-        run: |
-          if [[ -n "${{ github.event.inputs.app_version }}" ]]; then
-            VERSION="${{ github.event.inputs.app_version }}"
-          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            VERSION="${GITHUB_REF#refs/tags/v}"
-          else
-            VERSION="${DEFAULT_APP_VERSION}"
-          fi
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "Using APP_VERSION=${VERSION}"
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS-arm64
+            os: macos-14
+            eb_args: '--mac --arm64'
+          - name: macOS-x64
+            os: macos-13
+            eb_args: '--mac --x64'
+          - name: Windows-x64
+            os: windows-latest
+            eb_args: '--win --x64'
+          - name: Linux-x64
+            os: ubuntu-latest
+            eb_args: '--linux --x64'
+          - name: Linux-arm64
+            os: ubuntu-24.04-arm
+            eb_args: '--linux --arm64'
 
-  # ===========================================================================
-  # Windows x64 build
-  # ===========================================================================
-  build-windows:
-    name: Build (Windows-x64)
-    needs: prepare
-    runs-on: windows-latest
-    env:
-      APP_VERSION: ${{ needs.prepare.outputs.app_version }}
+    name: Build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 21 (Temurin)
-        uses: actions/setup-java@v4
+      - uses: actions/setup-node@v4
         with:
-          distribution: 'temurin'
-          java-version: '21'
-          cache: 'maven'
+          node-version: 20
+          cache: npm
 
-      - name: Download JavaFX jmods (Windows)
-        shell: pwsh
-        run: |
-          $url = "https://download2.gluonhq.com/openjfx/$env:JAVAFX_VERSION/openjfx-$($env:JAVAFX_VERSION)_windows-x64_bin-jmods.zip"
-          Write-Host "Downloading: $url"
-          Invoke-WebRequest -Uri $url -OutFile jfx-jmods.zip
-          Expand-Archive -Path jfx-jmods.zip -DestinationPath .
-          $jfxDir = Get-ChildItem -Directory -Filter "javafx-jmods-*" | Select-Object -First 1
-          if (-not $jfxDir) { throw "JavaFX jmods directory not found!" }
-          "PATH_TO_FX_MODS=$($jfxDir.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
-          Write-Host "JavaFX jmods at: $($jfxDir.FullName)"
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Build with Maven
+      - name: Set version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
-        run: mvn -B -ntp clean package -DskipTests
-
-      - name: Create custom JRE
-        shell: pwsh
         run: |
-          jlink --module-path "$env:JAVA_HOME\jmods;$env:PATH_TO_FX_MODS" `
-                --add-modules java.naming,java.sql,java.logging,javafx.controls,javafx.fxml `
-                --no-header-files --no-man-pages --strip-debug --compress=2 `
-                --output jre
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          node -e "const fs=require('fs'),p=JSON.parse(fs.readFileSync('package.json','utf8'));p.version='${VERSION}';fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
+          echo "Set version to ${VERSION}"
 
-      # WiX Toolset is preinstalled on windows-latest, so .exe and .msi work
-      # out of the box.
-      - name: Package for Windows
-        shell: pwsh
+      - name: Set version from input
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''
+        shell: bash
         run: |
-          New-Item -ItemType Directory -Force -Path dist\jpackage\win | Out-Null
-          $yearShort = (Get-Date).Year.ToString().Substring(2)
-          $types = @("app-image", "exe", "msi")
-          foreach ($t in $types) {
-              Write-Host "===> Building $t"
-              jpackage --type $t `
-                  --input target/app `
-                  --name DogyMpegApp `
-                  --main-jar "DogyMPEGApp.jar" `
-                  --main-class "com.chotoxautinh.Main" `
-                  --java-options "-Xmx2048m" `
-                  --runtime-image jre `
-                  --icon "src\main\resources\icon.ico" `
-                  --app-version "$env:APP_VERSION" `
-                  --vendor "Dogy Inc." `
-                  --copyright "Copyright © 2016-$yearShort Dogy Inc." `
-                  --dest dist/jpackage/win
-              if ($LASTEXITCODE -ne 0) { throw "jpackage failed for type=$t" }
-          }
-          Write-Host "----- Windows dist contents -----"
-          Get-ChildItem -Recurse dist\jpackage\win | Select-Object FullName
+          VERSION="${{ github.event.inputs.version }}"
+          node -e "const fs=require('fs'),p=JSON.parse(fs.readFileSync('package.json','utf8'));p.version='${VERSION}';fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
+          echo "Set version to ${VERSION}"
 
-      # Append the arch label to output filenames for consistency with the
-      # macOS artifacts (and to make the GitHub Release file list clearer).
-      # Example: DogyMpegApp-1.0.2.exe -> DogyMpegApp-1.0.2-windows-x64.exe
-      - name: Rename output files with arch suffix
-        shell: pwsh
-        run: |
-          $archLabel = "windows-x64"
-          Get-ChildItem -Path "dist\jpackage\win" -File |
-            Where-Object { $_.Extension -in '.exe', '.msi' } |
-            ForEach-Object {
-              $newName = "$($_.BaseName)-$archLabel$($_.Extension)"
-              Write-Host "Renaming: $($_.Name) -> $newName"
-              Rename-Item -Path $_.FullName -NewName $newName
-            }
-          Get-ChildItem -Path "dist\jpackage\win" -File
+      - name: Build
+        run: npm run build
 
-      - name: Upload Windows artifacts
+      - name: Package and publish
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: npx electron-builder ${{ matrix.eb_args }} --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Package only
+        if: "!startsWith(github.ref, 'refs/tags/v')"
+        run: npx electron-builder ${{ matrix.eb_args }} --publish never
+
+      - name: Upload artifacts
+        if: "!startsWith(github.ref, 'refs/tags/v')"
         uses: actions/upload-artifact@v4
         with:
-          name: DogyMpegApp-Windows-x64
+          name: DogyMpegApp-${{ matrix.name }}
           path: |
-            dist/jpackage/win/*.exe
-            dist/jpackage/win/*.msi
-          if-no-files-found: error
-          retention-days: 30
-
-  # ===========================================================================
-  # macOS Apple Silicon build (arm64). Uses the shared composite action.
-  # macos-14 / macos-latest are ARM64.
-  # ===========================================================================
-  build-macos-apple-silicon:
-    name: Build (macOS-AppleSilicon)
-    needs: prepare
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/build-macos-package
-        with:
-          javafx-version: ${{ env.JAVAFX_VERSION }}
-          jfx-platform: osx-aarch64
-          app-version: ${{ needs.prepare.outputs.app_version }}
-          arch-label: macos-arm64
-          artifact-name: DogyMpegApp-macOS-AppleSilicon
-
-  # ===========================================================================
-  # macOS Intel build - PRIMARY attempt on macos-15-intel.
-  #
-  # continue-on-error: true keeps the workflow green even if this job fails.
-  # The job exposes `steps.build.outcome` as a job output so the fallback job
-  # can detect a real build failure (the job's `result` would always be
-  # 'success' because of continue-on-error).
-  # ===========================================================================
-  build-macos-intel-primary:
-    name: Build (macOS-Intel, primary)
-    needs: prepare
-    runs-on: macos-15-intel
-    continue-on-error: true
-    outputs:
-      build_outcome: ${{ steps.build.outcome }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: build
-        uses: ./.github/actions/build-macos-package
-        with:
-          javafx-version: ${{ env.JAVAFX_VERSION }}
-          jfx-platform: osx-x64
-          app-version: ${{ needs.prepare.outputs.app_version }}
-          arch-label: macos-x64
-          artifact-name: DogyMpegApp-macOS-Intel
-
-  # ===========================================================================
-  # macOS Intel build - FALLBACK attempt on macos-26-intel.
-  #
-  # Runs only when the primary build actually failed (detected via the
-  # primary's build_outcome output). Also continue-on-error: true so a
-  # double failure doesn't fail the workflow.
-  #
-  # Uses the same artifact name as the primary; there is no conflict because
-  # the primary's upload step never ran if the primary failed.
-  # ===========================================================================
-  build-macos-intel-fallback:
-    name: Build (macOS-Intel, fallback)
-    needs:
-      - prepare
-      - build-macos-intel-primary
-    if: ${{ needs.build-macos-intel-primary.outputs.build_outcome == 'failure' }}
-    runs-on: macos-26-intel
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/build-macos-package
-        with:
-          javafx-version: ${{ env.JAVAFX_VERSION }}
-          jfx-platform: osx-x64
-          app-version: ${{ needs.prepare.outputs.app_version }}
-          arch-label: macos-x64
-          artifact-name: DogyMpegApp-macOS-Intel
-
-  # ===========================================================================
-  # Publish a GitHub Release whenever a v* tag is pushed.
-  #
-  # Requirements:
-  #   - Windows AND macOS Apple Silicon must succeed.
-  #   - macOS Intel is optional: if both primary and fallback fail, the
-  #     release is still created (just without the Intel artifact).
-  # ===========================================================================
-  release:
-    name: Create GitHub Release
-    needs:
-      - build-windows
-      - build-macos-apple-silicon
-      - build-macos-intel-primary
-      - build-macos-intel-fallback
-    if: |
-      always() &&
-      startsWith(github.ref, 'refs/tags/v') &&
-      needs.build-windows.result == 'success' &&
-      needs.build-macos-apple-silicon.result == 'success'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: List downloaded files
-        run: find artifacts -type f -printf "%p (%s bytes)\n"
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-          files: |
-            artifacts/**/*.dmg
-            artifacts/**/*.pkg
-            artifacts/**/*.exe
-            artifacts/**/*.msi
+            release/**/*.dmg
+            release/**/*.pkg
+            release/**/*.exe
+            release/**/*.msi
+            release/**/*.AppImage
+            release/**/*.deb
+          if-no-files-found: warn
+          retention-days: 7

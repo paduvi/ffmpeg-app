@@ -1,0 +1,52 @@
+appId: com.chotoxautinh.dogympegapp
+productName: DogyMpegApp
+copyright: Copyright © 2016-2026 Dogy Inc.
+directories:
+  buildResources: resources
+  output: release
+files:
+  - '!**/.vscode/*'
+  - '!{.eslintrc.cjs,.prettierrc,.gitignore}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json,electron.vite.config.ts}'
+  - '!{README.md,CLAUDE.md,LICENSE.md}'
+  - '!**/*.{ts,tsx,map}'
+  - '!{src,resources}/**'
+extraResources:
+  - from: resources/models
+    to: models
+  - from: resources/sample-images
+    to: sample-images
+  - from: resources/icon.png
+    to: icon.png
+asarUnpack:
+  - '**/node_modules/ffmpeg-static/**'
+  - '**/node_modules/sharp/**'
+  - '**/node_modules/onnxruntime-node/**'
+  - '**/node_modules/better-sqlite3/**'
+  - '**/node_modules/@tensorflow/tfjs-node/**'
+mac:
+  category: public.app-category.video
+  icon: resources/icon.icns
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+    - target: pkg
+      arch: [x64, arm64]
+win:
+  icon: resources/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: msi
+      arch: [x64]
+linux:
+  icon: resources/icon.png
+  category: AudioVideo
+  target:
+    - target: AppImage
+      arch: [x64, arm64]
+    - target: deb
+      arch: [x64, arm64]
+publish:
+  provider: github
+  releaseType: release

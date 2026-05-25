@@ -1,12 +1,25 @@
-.classpath
-.project
-.settings
-target/
 .DS_Store
-dist/
-*.iml
 .idea/
-jre/
+*.iml
+*.log
 logs/
 
-src/test/resources/
+# Node / npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# electron-vite
+out/
+.vite/
+
+# electron-builder
+dist/
+release/
+build/
+
+# Local env
+.env
+.env.local
+.env.*.local

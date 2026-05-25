@@ -1,134 +1,97 @@
-# DogyMpegApp - Video Processing Utility
+# DogyMpegApp — Video Processing Utility
 
-DogyMpegApp is a desktop GUI application built with Java 21 and JavaFX, designed to simplify common video processing tasks. It acts as a user-friendly wrapper around **FFmpeg**, allowing users to compress, cut, and manage video files without needing to use command-line arguments.
+DogyMpegApp is a cross-platform desktop GUI application built with **Electron**, **React**, and **TypeScript**, designed to simplify common video processing tasks. It acts as a user-friendly wrapper around **FFmpeg**, with an ML-driven feature that automatically finds the best cut point in a video based on a user-supplied sample image.
 
 ## Key Features
 
-*   **Video Compression:** Reduce video file sizes with customizable presets and quality settings.
-*   **Video Cutting:** Trim video clips precisely.
-*   **Frame Extraction:** Extract sample images or frames from video files.
-*   **Batch Processing:** Handle video tasks efficiently with progress tracking.
-*   **User-Friendly Interface:** Clean JavaFX-based GUI for easy navigation and configuration.
+- **Video Compression** — Reduce video file sizes with customizable preset, CRF, and audio codec.
+- **Intelligent Video Cutting** — A bundled ResNet18 ONNX model picks the frame most similar to a sample image, then cuts there with a fast stream-copy.
+- **Batch Processing** — Run multiple jobs in parallel with progress tracking and one-click cancellation.
+- **Theme Support** — Light, dark, and system theme via the File menu.
+- **Auto-Update** — Installed apps check for new releases on launch and prompt to restart when an update is ready.
+- **Cross-Platform** — Ships on macOS (Apple Silicon + Intel), Windows, and Linux.
 
 ## Technology Stack
 
-*   **Language:** Java 21
-*   **GUI Framework:** JavaFX
-*   **Core Engine:** FFmpeg (via command-line wrapper)
-*   **Database:** SQLite (for internal data/configuration)
-*   **Build Tool:** Maven
+- **Runtime:** Electron 33+ on Node 20+
+- **UI:** React 18 + TypeScript + Mantine v7
+- **Build:** electron-vite (dev) + electron-builder (packaging)
+- **Core Engine:** FFmpeg via `ffmpeg-static` (bundled per platform; override path in Settings)
+- **ML:** `onnxruntime-node` for inference, `sharp` for image preprocessing, `@tensorflow/tfjs-node` for tensor ops
+- **Storage:** `better-sqlite3` (sample images), `electron-store` (user preferences)
+- **Auto-update:** `electron-updater` against GitHub Releases
 
 ## Prerequisites
-- This project is built using **Java 21** and **Maven**.
-- Download the **JavaFX SDK** and **JavaFX jmods** from [this link](https://gluonhq.com/products/javafx/).
+
+- Node.js 20 or newer
+- npm
+- On Linux: build tools for native modules — typically `build-essential` + `python3`
 
 ## Getting Started
-You can test the project by running the following command:
-```
-mvn javafx:run
+
+```bash
+npm install
+npm run dev
 ```
 
-## Usage
-
-Launch the application to access the main dashboard. From there, you can navigate to specific tools via the menu to start compressing or cutting your video files.
+`npm run dev` launches the app with Vite HMR for the renderer and live restart for the main process.
 
 ## Build
-Build the main JAR file and all other necessary dependencies:
-```
-mvn clean package
-```
 
-You need to create a **JRE runtime image**, which will be embedded into the final package. By default, `jpackage` creates the runtime image, but it does not include certain runtime libraries required to run JavaFX programs.  
-We can manually create a custom runtime image and build the package afterward.
+Build the production bundle without packaging an installer:
 
-### MacOS
-
-```
-# Set the path to JavaFX jmods
-export PATH_TO_FX_MODS=path/to/javafx-jmods
-export APP_VERSION=1.0.2
-
-# Create a custom runtime image
-jlink \
-  --module-path "$JAVA_HOME/jmods:$PATH_TO_FX_MODS" \
-  --add-modules java.naming,java.sql,java.logging,javafx.controls,javafx.fxml \
-  --output jre
-  
-# Build and package for different MacOSX types
-YEAR_SHORT="$(date +%y)"
-for TYPE in app-image dmg pkg; do
-  echo "===> Building $TYPE"
-  jpackage --type "$TYPE" \
-    --name DogyMpegApp \
-    --input target/app \
-    --main-jar DogyMPEGApp.jar \
-    --main-class com.chotoxautinh.Main \
-    --java-options "-Xmx2048m" \
-    --runtime-image jre \
-    --app-version "$APP_VERSION" \
-    --vendor "Dogy Inc." \
-    --copyright "Copyright © 2016-${YEAR_SHORT} Dogy Inc." \
-    --mac-package-name "DogyMpegApp" \
-    --mac-package-identifier com.chotoxautinh \
-    --icon src/main/resources/icon.icns \
-    --dest dist/jpackage/mac
-done
+```bash
+npm run build
 ```
 
-### Windows
-There are 3 file types for Windows:
-1. `app-image`:
-This type creates a directory containing your application and a custom JRE. It's not an installer; rather, it's a portable directory that can be run directly.
-You can compress this directory into a .zip file for distribution. Once users extract it, they can run the .exe file inside.
-This is a good choice for internal distribution or when you prefer more manual control over the installation process.
+## Package
 
-2. `exe`:
-This type generates a direct executable file (.exe).
-Typically, it creates a basic installer that then installs the application into the Program Files or AppData directory and creates shortcuts.
+Produce installers for the current platform:
 
-3. `msi`:
-This type produces a Windows Installer file (.msi).
-An .msi file provides a standard Windows installation and uninstallation experience, integrating well with Windows' application management system.
-
-
-To use `exe` and `msi` options, you need to install [WiX Toolset](https://github.com/wixtoolset/wix3/releases) on your Windows system. jpackage leverages WiX to generate the package.
-
+```bash
+npm run package
 ```
-# Set the path to JavaFX jmods
-$env:PATH_TO_FX_MODS="path/to/javafx-jmods"
-$env:APP_VERSION="1.0.2"
 
-# Create a custom runtime image
-jlink --module-path "$env:JAVA_HOME\jmods;$env:PATH_TO_FX_MODS" `
-      --add-modules java.naming,java.sql,java.logging,javafx.controls,javafx.fxml `
-      --output jre
-      
-# Build and package for different Windows types
-$yearShort = (Get-Date).Year.ToString().Substring(2)
-$types = @("app-image", "exe", "msi")
-foreach ($t in $types) {
-    Write-Host "===> Building $t"
-    jpackage --type $t `
-        --input target/app `
-        --name DogyMpegApp `
-        --main-jar "DogyMPEGApp.jar" `
-        --main-class "com.chotoxautinh.Main" `
-        --java-options "-Xmx2048m" `
-        --runtime-image jre `
-        --icon "src\main\resources\icon.ico" `
-        --app-version "$env:APP_VERSION" `
-        --vendor "Dogy Inc." `
-        --copyright "Copyright © 2016-$yearShort Dogy Inc." `
-        --dest dist/jpackage/win
-    if ($LASTEXITCODE -ne 0) { throw "jpackage failed for type=$t" }
-}
+Or target a specific platform:
+
+```bash
+npm run package:mac     # DMG + PKG (x64, arm64)
+npm run package:win     # NSIS + MSI (x64)
+npm run package:linux   # AppImage + deb (x64, arm64)
 ```
+
+Output lands in `release/`.
+
+## Releasing
+
+Tag a release on `main`:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+CI runs a 5-job matrix — macOS Apple Silicon, macOS Intel, Windows x64, Linux x64, Linux arm64 — then publishes the artifacts plus the `latest*.yml` update feeds to a GitHub Release. Installed apps pick up the new version on next launch via `electron-updater`.
+
+You can also trigger a manual run from the GitHub Actions tab (`workflow_dispatch`) and optionally pass a version override.
+
+## Scripts
+
+| Script | Description |
+|---|---|
+| `npm run dev` | Electron + Vite HMR |
+| `npm run typecheck` | TypeScript checks for main, preload, and renderer |
+| `npm run lint` | ESLint |
+| `npm run format` | Prettier |
+| `npm run build` | Production bundle (no installer) |
+| `npm run package` | Build installers for the current OS |
+| `npm run package:mac` / `:win` / `:linux` | Build installers for a specific OS |
 
 ## License
 
 This project is licensed under the MIT License.
 
-Copyright (c) 2016-2025 Dogy Inc.
+Copyright (c) 2016-2026 Dogy Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
