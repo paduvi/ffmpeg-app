@@ -1,10 +1,11 @@
 import { cpus, homedir } from 'node:os'
 import { join, basename, extname, dirname } from 'node:path'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, unlinkSync, existsSync } from 'node:fs'
 import pLimit from 'p-limit'
 import { runFfmpeg } from './ffmpeg'
 import store from '../store'
 import log from '../logger'
+import type { FileProgress } from '../../shared/types'
 
 export type CompressionJob = {
   input: string
@@ -32,7 +33,7 @@ function makeOutputDir(): string {
 
 export async function compressVideos(
   jobs: CompressionJob[],
-  onAggregateProgress: (value: number) => void,
+  onProgress: (progress: FileProgress[]) => void,
   signal: AbortSignal
 ): Promise<CompressionResult> {
   const audioCodec = store.get('audioCodec')
@@ -43,7 +44,12 @@ export async function compressVideos(
   const outputDir = makeOutputDir()
   log.info(`Compression output dir: ${outputDir}`)
 
-  const perFile = new Array<number>(jobs.length).fill(0)
+  const perFile: FileProgress[] = jobs.map((job) => ({
+    name: basename(job.input),
+    value: 0,
+    done: false,
+    active: false
+  }))
   const outputs = new Array<string>(jobs.length)
 
   const limit = pLimit(cpus().length)
@@ -55,6 +61,9 @@ export async function compressVideos(
       const stem = basename(job.input, extname(job.input))
       outputs[i] = job.output ?? join(outputDir, `${stem}.${ext}`)
 
+      perFile[i] = { ...perFile[i], active: true }
+      onProgress([...perFile])
+
       const args = [
         '-i', job.input,
         '-c:v', 'libx264',
@@ -64,15 +73,26 @@ export async function compressVideos(
         '-y', outputs[i]
       ]
 
-      await runFfmpeg(
-        args,
-        (value) => {
-          perFile[i] = value
-          const aggregate = perFile.reduce((s, v) => s + v, 0) / jobs.length
-          onAggregateProgress(aggregate)
-        },
-        signal
-      )
+      try {
+        await runFfmpeg(
+          args,
+          (value) => {
+            perFile[i] = { ...perFile[i], value, active: true }
+            onProgress([...perFile])
+          },
+          signal
+        )
+        perFile[i] = { ...perFile[i], value: 1, done: true, active: false }
+        onProgress([...perFile])
+      } catch (err) {
+        // Delete the partial output file so cancelled/failed files don't litter the output dir
+        if (outputs[i] && existsSync(outputs[i])) {
+          try { unlinkSync(outputs[i]) } catch { /* ignore */ }
+        }
+        perFile[i] = { ...perFile[i], active: false }
+        onProgress([...perFile])
+        if (!signal.aborted) throw err
+      }
     })
   )
 

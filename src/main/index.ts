@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, protocol, net } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import log from './logger'
 import store from './store'
@@ -11,6 +11,14 @@ import { registerCuttingHandlers } from './ipc/cutting'
 import { registerSamplesHandlers } from './ipc/samples'
 import { initOnnxSession } from './services/onnx'
 import { initUpdater } from './updater'
+
+// Register local-file:// scheme before app is ready so it is trusted.
+// This lets the renderer (which may be on http://localhost in dev) load
+// images from the local filesystem without triggering mixed-content or
+// same-origin blocks.
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'local-file', privileges: { secure: true, supportFetchAPI: false, bypassCSP: false, stream: true } }
+])
 
 // Single-instance lock
 if (!app.requestSingleInstanceLock()) {
@@ -28,6 +36,14 @@ app.on('second-instance', () => {
 
 async function bootstrap(): Promise<void> {
   electronApp.setAppUserModelId('com.chotoxautinh.dogympegapp')
+
+  // local-file://<absolute-path> → serves the file at that path.
+  // Enables <img src="local-file:///abs/path/to/image.png"> to work from
+  // both the http://localhost dev server and the file:// production page.
+  protocol.handle('local-file', (request) => {
+    const filePath = request.url.slice('local-file://'.length)
+    return net.fetch(`file://${filePath}`)
+  })
 
   app.on('browser-window-created', (_e, window) => {
     optimizer.watchWindowShortcuts(window)

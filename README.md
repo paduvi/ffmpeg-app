@@ -4,10 +4,14 @@ DogyMpegApp is a cross-platform desktop GUI application built with **Electron**,
 
 ## Key Features
 
-- **Video Compression** — Reduce video file sizes with customizable preset, CRF, and audio codec.
-- **Intelligent Video Cutting** — A bundled ResNet18 ONNX model picks the frame most similar to a sample image, then cuts there with a fast stream-copy.
-- **Batch Processing** — Run multiple jobs in parallel with progress tracking and one-click cancellation.
+- **Video Compression** — Reduce video file sizes with customizable preset, CRF, and audio codec. Per-file progress bars with live percentage and cancellation.
+- **Intelligent Video Cutting** — A bundled ResNet18 ONNX model finds the frame most similar to a sample image, then cuts there with a fast stream-copy (`-c copy`). Two cut modes:
+  - **End of match** *(default)* — cuts after the matched sequence ends, useful for skipping intros.
+  - **Start of match** — cuts at the first matching frame.
+- **Three-phase progress** — the cutting progress bar tracks frame extraction, similarity search, and the final cut separately so you always see something moving.
+- **Batch Processing** — run multiple files with one-click cancellation; only fully-completed files are kept on disk (partial files from cancelled jobs are deleted automatically).
 - **Theme Support** — Light, dark, and system theme via the File menu.
+- **GPU Acceleration** — ONNX inference uses CoreML on macOS (Apple Neural Engine / Metal) and DirectML on Windows (GPU via DirectX 12) with automatic CPU fallback.
 - **Auto-Update** — Installed apps check for new releases on launch and prompt to restart when an update is ready.
 - **Cross-Platform** — Ships on macOS (Apple Silicon + Intel), Windows, and Linux.
 

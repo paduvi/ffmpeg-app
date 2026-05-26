@@ -50,7 +50,7 @@ export function SampleImageTable({ samples, selectedId, onSelect, onRemove }: Pr
                 </Text>
               </Table.Td>
               <Table.Td>
-                <Image src={`file://${s.path}`} w={60} h={40} fit="contain" radius="sm" />
+                <Image src={`local-file://${s.path}`} w={60} h={40} fit="contain" radius="sm" />
               </Table.Td>
               <Table.Td onClick={(e) => e.stopPropagation()}>
                 {!s.isPermanent && (

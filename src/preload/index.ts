@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { Settings, SampleImage, VideoFile } from '../shared/types'
+import type { CutMode, Settings, SampleImage, VideoFile, FileProgress } from '../shared/types'
 
 const api = {
   app: {
@@ -38,9 +38,9 @@ const api = {
     start: (jobs: { input: string; output?: string }[]): Promise<string> =>
       ipcRenderer.invoke('compression:start', jobs),
     cancel: (jobId: string): Promise<void> => ipcRenderer.invoke('compression:cancel', jobId),
-    onProgress: (cb: (jobId: string, value: number) => void) => {
-      const handler = (_e: Electron.IpcRendererEvent, jobId: string, value: number) =>
-        cb(jobId, value)
+    onProgress: (cb: (jobId: string, progress: FileProgress[]) => void) => {
+      const handler = (_e: Electron.IpcRendererEvent, jobId: string, progress: FileProgress[]) =>
+        cb(jobId, progress)
       ipcRenderer.on('compression:progress', handler)
       return () => ipcRenderer.off('compression:progress', handler)
     },
@@ -53,12 +53,12 @@ const api = {
   },
 
   cutting: {
-    start: (jobs: { input: string; sampleImageId: number }[]): Promise<string> =>
-      ipcRenderer.invoke('cutting:start', jobs),
+    start: (jobs: { input: string; sampleImageId: number }[], cutMode: CutMode): Promise<string> =>
+      ipcRenderer.invoke('cutting:start', jobs, cutMode),
     cancel: (jobId: string): Promise<void> => ipcRenderer.invoke('cutting:cancel', jobId),
-    onProgress: (cb: (jobId: string, value: number) => void) => {
-      const handler = (_e: Electron.IpcRendererEvent, jobId: string, value: number) =>
-        cb(jobId, value)
+    onProgress: (cb: (jobId: string, progress: FileProgress[]) => void) => {
+      const handler = (_e: Electron.IpcRendererEvent, jobId: string, progress: FileProgress[]) =>
+        cb(jobId, progress)
       ipcRenderer.on('cutting:progress', handler)
       return () => ipcRenderer.off('cutting:progress', handler)
     },

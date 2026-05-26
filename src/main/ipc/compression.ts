@@ -15,8 +15,8 @@ export function registerCompressionHandlers(): void {
 
     compressVideos(
       jobs,
-      (value) => {
-        if (!sender.isDestroyed()) sender.send('compression:progress', jobId, value)
+      (progress) => {
+        if (!sender.isDestroyed()) sender.send('compression:progress', jobId, progress)
       },
       ac.signal
     )

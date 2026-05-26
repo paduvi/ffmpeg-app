@@ -44,6 +44,12 @@ export function runFfmpeg(
   signal: AbortSignal
 ): Promise<void> {
   return new Promise((resolve, reject) => {
+    // Guard: if already aborted before we even spawn, bail immediately
+    if (signal.aborted) {
+      reject(new Error('ffmpeg aborted'))
+      return
+    }
+
     const binary = resolveFfmpegPath()
     log.debug(`ffmpeg ${args.join(' ')}`)
 
@@ -73,7 +79,9 @@ export function runFfmpeg(
 
     proc.on('close', (code) => {
       signal.removeEventListener('abort', onAbort)
-      if (signal.aborted || code === 0) {
+      if (signal.aborted) {
+        reject(new Error('ffmpeg aborted'))
+      } else if (code === 0) {
         onProgress(1)
         resolve()
       } else {

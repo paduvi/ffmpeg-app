@@ -1,5 +1,5 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-import type { Settings, SampleImage, VideoFile } from '../shared/types'
+import type { CutMode, Settings, SampleImage, VideoFile, FileProgress } from '../shared/types'
 
 type Unsubscribe = () => void
 
@@ -32,13 +32,13 @@ declare global {
       compression: {
         start: (jobs: { input: string; output?: string }[]) => Promise<string>
         cancel: (jobId: string) => Promise<void>
-        onProgress: (cb: (jobId: string, value: number) => void) => Unsubscribe
+        onProgress: (cb: (jobId: string, progress: FileProgress[]) => void) => Unsubscribe
         onDone: (cb: (jobId: string, outputDir: string) => void) => Unsubscribe
       }
       cutting: {
-        start: (jobs: { input: string; sampleImageId: number }[]) => Promise<string>
+        start: (jobs: { input: string; sampleImageId: number }[], cutMode: CutMode) => Promise<string>
         cancel: (jobId: string) => Promise<void>
-        onProgress: (cb: (jobId: string, value: number) => void) => Unsubscribe
+        onProgress: (cb: (jobId: string, progress: FileProgress[]) => void) => Unsubscribe
         onDone: (cb: (jobId: string, outputDir: string) => void) => Unsubscribe
       }
     }

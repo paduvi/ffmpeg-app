@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Button, Group, Stack, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { IconPlus, IconTrash, IconPlayerPlay } from '@tabler/icons-react'
-import type { VideoFile } from '@shared/types'
+import { IconPlus, IconTrash } from '@tabler/icons-react'
+import type { FileProgress, VideoFile } from '@shared/types'
 import { VideoTable } from '../components/VideoTable'
 import { ProgressModal } from '../components/ProgressModal'
 
@@ -10,6 +10,7 @@ export function Compression() {
   const [files, setFiles] = useState<VideoFile[]>([])
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set())
   const [jobId, setJobId] = useState<string | null>(null)
+  const [initialFiles, setInitialFiles] = useState<FileProgress[]>([])
   const [progressOpened, { open: openProgress, close: closeProgress }] = useDisclosure(false)
 
   const addVideos = async (): Promise<void> => {
@@ -40,6 +41,9 @@ export function Compression() {
     const targets = files.filter((f) => selectedPaths.has(f.path))
     if (!targets.length) return
     const jobs = targets.map((f) => ({ input: f.path }))
+    // Build the initial file list before start() so the modal can show all rows
+    // immediately — without waiting for the first IPC progress event.
+    setInitialFiles(targets.map((f) => ({ name: f.name, value: 0, done: false, active: false })))
     const id = await window.api.compression.start(jobs)
     setJobId(id)
     openProgress()
@@ -74,7 +78,7 @@ export function Compression() {
           Remove
         </Button>
         <Button
-          leftSection={<IconPlayerPlay size={16} />}
+          leftSection={<img src="./img/convert-icon.png" width={20} height={20} style={{ objectFit: 'contain' }} />}
           disabled={!hasSelection}
           onClick={convert}
         >
@@ -93,6 +97,7 @@ export function Compression() {
         opened={progressOpened}
         jobId={jobId}
         feature="compression"
+        initialFiles={initialFiles}
         onCancel={handleCancel}
         onClose={handleClose}
       />

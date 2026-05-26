@@ -11,10 +11,22 @@ export type Frame = { path: string; timestampMs: number }
 // showinfo filter emits lines like:
 // [Parsed_showinfo_1 @ 0x...] n:   0 pts: 512 pts_time:0.200000 ...
 const SHOWINFO_RE = /Parsed_showinfo.*?\bpts_time:(\d+(?:\.\d+)?)/
+const DURATION_RE = /Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/
 
+function parseDurationSeconds(h: string, m: string, s: string): number {
+  return Number(h) * 3600 + Number(m) * 60 + parseFloat(s)
+}
+
+/**
+ * @param onProgress - called for each extracted frame with a 0–1 value
+ *   representing how far through the video extraction has progressed.
+ *   Useful for showing a progress bar during the (potentially slow) extraction
+ *   phase before similarity search begins.
+ */
 export async function extractFrames(
   videoPath: string,
-  signal: AbortSignal
+  signal: AbortSignal,
+  onProgress?: (value: number) => void
 ): Promise<{ frames: Frame[]; cleanup: () => void }> {
   const tmpDir = mkdtempSync(join(tmpdir(), 'dogympeg-frames-'))
   const timestamps: number[] = []
@@ -39,10 +51,22 @@ export async function extractFrames(
     }
     signal.addEventListener('abort', onAbort, { once: true })
 
+    let totalSeconds = 0
     const rl = createInterface({ input: proc.stderr! })
     rl.on('line', (line) => {
+      // Parse total duration once (for progress reporting)
+      if (!totalSeconds) {
+        const dm = DURATION_RE.exec(line)
+        if (dm) totalSeconds = parseDurationSeconds(dm[1], dm[2], dm[3])
+      }
       const m = SHOWINFO_RE.exec(line)
-      if (m) timestamps.push(Math.round(parseFloat(m[1]) * 1000))
+      if (m) {
+        const ptsS = parseFloat(m[1])
+        timestamps.push(Math.round(ptsS * 1000))
+        if (onProgress && totalSeconds > 0) {
+          onProgress(Math.min(ptsS / totalSeconds, 1))
+        }
+      }
     })
 
     proc.on('close', (code) => {

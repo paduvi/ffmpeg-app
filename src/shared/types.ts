@@ -28,10 +28,15 @@ export type SampleImage = {
   isPermanent: boolean
 }
 
-export type JobProgress = {
-  jobId: string
-  value: number
+export type FileProgress = {
+  name: string
+  value: number   // 0–1
+  done: boolean
+  active: boolean // currently being processed (shows animation even at 0%)
 }
+
+/** Whether to cut at the first similar frame (start) or the last (end of match). */
+export type CutMode = 'start' | 'end'
 
 export type VideoFile = {
   path: string

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Button, Grid, Group, Image, Stack, Text, Title } from '@mantine/core'
+import { Button, Grid, Group, Image, SegmentedControl, Stack, Text, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { IconPlus, IconScissors, IconPhoto } from '@tabler/icons-react'
-import type { SampleImage, VideoFile } from '@shared/types'
+import type { CutMode, FileProgress, SampleImage, VideoFile } from '@shared/types'
 import { VideoTable } from '../components/VideoTable'
 import { SampleImageTable } from '../components/SampleImageTable'
 import { ProgressModal } from '../components/ProgressModal'
@@ -13,6 +13,8 @@ export function Cutting() {
   const [samples, setSamples] = useState<SampleImage[]>([])
   const [selectedSampleId, setSelectedSampleId] = useState<number | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
+  const [initialFiles, setInitialFiles] = useState<FileProgress[]>([])
+  const [cutMode, setCutMode] = useState<CutMode>('end')
   const [progressOpened, { open: openProgress, close: closeProgress }] = useDisclosure(false)
 
   useEffect(() => {
@@ -60,7 +62,10 @@ export function Cutting() {
     const targets = files.filter((f) => selectedPaths.has(f.path))
     if (!targets.length) return
     const jobs = targets.map((f) => ({ input: f.path, sampleImageId: selectedSampleId }))
-    const id = await window.api.cutting.start(jobs)
+    // Build the initial file list before start() so the modal can show all rows
+    // immediately — without waiting for the first IPC progress event.
+    setInitialFiles(targets.map((f) => ({ name: f.name, value: 0, done: false, active: false })))
+    const id = await window.api.cutting.start(jobs, cutMode)
     setJobId(id)
     openProgress()
   }
@@ -83,7 +88,7 @@ export function Cutting() {
       <Grid gutter="md">
         <Grid.Col span={7}>
           <Stack gap="xs">
-            <Group>
+            <Group align="center">
               <Button leftSection={<IconPlus size={16} />} onClick={addVideos}>
                 Add Video
               </Button>
@@ -94,6 +99,18 @@ export function Cutting() {
               >
                 Process
               </Button>
+              <Group gap={6} align="center">
+                <Text size="xs" c="dimmed" fw={500}>Cut at:</Text>
+                <SegmentedControl
+                  value={cutMode}
+                  onChange={(v) => setCutMode(v as CutMode)}
+                  size="xs"
+                  data={[
+                    { value: 'end', label: 'End of match' },
+                    { value: 'start', label: 'Start of match' },
+                  ]}
+                />
+              </Group>
             </Group>
             <VideoTable
               files={files}
@@ -122,14 +139,14 @@ export function Cutting() {
               onRemove={removeSample}
             />
             {selectedSample && (
-              <Stack gap={4} align="center">
+              <Stack gap={4}>
                 <Text size="xs" c="dimmed">
                   Selected sample
                 </Text>
                 <Image
-                  src={`file://${selectedSample.path}`}
-                  maw={200}
-                  mah={150}
+                  src={`local-file://${selectedSample.path}`}
+                  w="100%"
+                  mah={300}
                   fit="contain"
                   radius="md"
                 />
@@ -143,6 +160,7 @@ export function Cutting() {
         opened={progressOpened}
         jobId={jobId}
         feature="cutting"
+        initialFiles={initialFiles}
         onCancel={handleCancel}
         onClose={handleClose}
       />
