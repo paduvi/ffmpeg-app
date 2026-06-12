@@ -31,7 +31,7 @@ This project was migrated from JavaFX (Java 21). The Java history is preserved i
 - `resources/` — packaged static assets. `models/resnet18_identity.onnx`, `icon.{icns,ico,png}`, `img/` (JavaFX-era icons used as buttons), `sample-images/` (permanent built-in samples seeded to SQLite on first launch).
 - `electron.vite.config.ts` — Vite + electron-vite config. Three entry points (main/preload/renderer) with `@renderer` / `@shared` path aliases.
 - `electron-builder.yml` — packaging config. Targets: mac dmg+pkg (x64+arm64), win nsis+msi (x64). `publish: github` so `electron-updater` finds release feeds.
-- `.github/workflows/build.yml` — 3-job matrix (macOS arm64, macOS x64, Windows x64) triggered on `v*` tags or `workflow_dispatch`. Tag pushes use `--publish always`; dispatches use `--publish never` and upload as workflow artifacts.
+- `.github/workflows/build.yml` — prepare (version) → build jobs (Windows x64, macOS arm64, macOS Intel primary on `macos-15-intel` with a `macos-26-intel` fallback) → release job. Build jobs never publish (`--publish never`, upload artifacts); the release job alone has `permissions: contents: write` and publishes via `softprops/action-gh-release`. Shared build steps live in `.github/actions/build-electron-package/action.yml`. macOS Intel is optional for a release; Windows + macOS arm64 are required.
 
 ---
 
@@ -275,7 +275,7 @@ npm run package:win   # NSIS + MSI (x64)
 
 ## Releasing
 
-Push a tag `vX.Y.Z`; CI builds and publishes DMG/PKG/EXE/MSI plus the `latest*.yml` update feeds to a GitHub Release (`--publish always`; requires `GH_TOKEN`). Manual run: `workflow_dispatch` with an optional version input. Installed apps auto-check on launch (production only — gated on `app.isPackaged`) and show a "Restart Now / Later" dialog when an update is downloaded.
+Push a tag `vX.Y.Z`; build jobs upload artifacts and a dedicated release job publishes DMG/PKG/ZIP/EXE/MSI plus the `latest*.yml` update feeds and `.blockmap` files to a GitHub Release (no PAT needed — the release job grants `contents: write` to the default token). The two per-arch `latest-mac.yml` feeds are merged in the release job so electron-updater serves both architectures from one file; the mac `zip` target exists because electron-updater on macOS cannot update from a dmg. Manual run: `workflow_dispatch` with an optional version input (builds artifacts, no release). Installed apps auto-check on launch (production only — gated on `app.isPackaged`) and show a "Restart Now / Later" dialog when an update is downloaded.
 
 ---
 

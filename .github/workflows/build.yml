@@ -1,5 +1,11 @@
 name: Build & Release
 
+# Structure follows the proven v1.0.2 (JavaFX-era) workflow:
+#   prepare → per-platform build jobs (artifacts only, no publishing)
+#           → single release job with contents:write that publishes everything.
+# This avoids the failure modes of per-job publishing: read-only GITHUB_TOKEN
+# (403 on upload) and parallel jobs racing to create the same release.
+
 on:
   push:
     tags: ['v*']
@@ -11,73 +17,165 @@ on:
         default: ''
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: macOS-arm64
-            os: macos-14
-            eb_args: '--mac --arm64'
-          - name: macOS-x64
-            os: macos-13
-            eb_args: '--mac --x64'
-          - name: Windows-x64
-            os: windows-latest
-            eb_args: '--win --x64'
+  # ===========================================================================
+  # Resolve the application version once so every downstream job sees the
+  # same value (workflow_dispatch input > tag > package.json as-is).
+  # ===========================================================================
+  prepare:
+    name: Resolve Version
+    runs-on: ubuntu-latest
+    outputs:
+      app_version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - name: Resolve APP_VERSION
+        id: resolve
+        run: |
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          else
+            VERSION=""
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Using APP_VERSION=${VERSION:-package.json}"
 
-    name: Build (${{ matrix.name }})
-    runs-on: ${{ matrix.os }}
-
+  # ===========================================================================
+  # Windows x64
+  # ===========================================================================
+  build-windows:
+    name: Build (Windows-x64)
+    needs: prepare
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/build-electron-package
         with:
-          node-version: 20
-          cache: npm
+          eb-args: '--win --x64'
+          artifact-name: DogyMpegApp-Windows-x64
+          app-version: ${{ needs.prepare.outputs.app_version }}
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Set version from tag
-        if: startsWith(github.ref, 'refs/tags/v')
-        shell: bash
-        run: |
-          VERSION="${GITHUB_REF#refs/tags/v}"
-          node -e "const fs=require('fs'),p=JSON.parse(fs.readFileSync('package.json','utf8'));p.version='${VERSION}';fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
-          echo "Set version to ${VERSION}"
-
-      - name: Set version from input
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''
-        shell: bash
-        run: |
-          VERSION="${{ github.event.inputs.version }}"
-          node -e "const fs=require('fs'),p=JSON.parse(fs.readFileSync('package.json','utf8'));p.version='${VERSION}';fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
-          echo "Set version to ${VERSION}"
-
-      - name: Build
-        run: npm run build
-
-      - name: Package and publish
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: npx electron-builder ${{ matrix.eb_args }} --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Package only
-        if: "!startsWith(github.ref, 'refs/tags/v')"
-        run: npx electron-builder ${{ matrix.eb_args }} --publish never
-
-      - name: Upload artifacts
-        if: "!startsWith(github.ref, 'refs/tags/v')"
-        uses: actions/upload-artifact@v4
+  # ===========================================================================
+  # macOS Apple Silicon (arm64)
+  # ===========================================================================
+  build-macos-apple-silicon:
+    name: Build (macOS-AppleSilicon)
+    needs: prepare
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-electron-package
         with:
-          name: DogyMpegApp-${{ matrix.name }}
-          path: |
-            release/**/*.dmg
-            release/**/*.pkg
-            release/**/*.exe
-            release/**/*.msi
-          if-no-files-found: warn
-          retention-days: 7
+          eb-args: '--mac --arm64'
+          artifact-name: DogyMpegApp-macOS-AppleSilicon
+          app-version: ${{ needs.prepare.outputs.app_version }}
+
+  # ===========================================================================
+  # macOS Intel — PRIMARY attempt on macos-15-intel.
+  #
+  # continue-on-error keeps the workflow green if this job fails; the fallback
+  # detects a real failure via the build_outcome output (the job's own
+  # `result` would always read 'success' because of continue-on-error).
+  # ===========================================================================
+  build-macos-intel-primary:
+    name: Build (macOS-Intel, primary)
+    needs: prepare
+    runs-on: macos-15-intel
+    continue-on-error: true
+    outputs:
+      build_outcome: ${{ steps.build.outcome }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: build
+        uses: ./.github/actions/build-electron-package
+        with:
+          eb-args: '--mac --x64'
+          artifact-name: DogyMpegApp-macOS-Intel
+          app-version: ${{ needs.prepare.outputs.app_version }}
+
+  # ===========================================================================
+  # macOS Intel — FALLBACK on macos-26-intel; runs only when the primary
+  # actually failed. Same artifact name is safe: the primary never uploaded.
+  # ===========================================================================
+  build-macos-intel-fallback:
+    name: Build (macOS-Intel, fallback)
+    needs:
+      - prepare
+      - build-macos-intel-primary
+    if: ${{ needs.build-macos-intel-primary.outputs.build_outcome == 'failure' }}
+    runs-on: macos-26-intel
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-electron-package
+        with:
+          eb-args: '--mac --x64'
+          artifact-name: DogyMpegApp-macOS-Intel
+          app-version: ${{ needs.prepare.outputs.app_version }}
+
+  # ===========================================================================
+  # Publish a GitHub Release on v* tags.
+  #   - Windows AND macOS Apple Silicon must succeed.
+  #   - macOS Intel is optional (primary/fallback both failing still releases).
+  # The two per-arch latest-mac.yml feeds are merged so electron-updater
+  # serves both architectures from one feed file.
+  # ===========================================================================
+  release:
+    name: Create GitHub Release
+    needs:
+      - build-windows
+      - build-macos-apple-silicon
+      - build-macos-intel-primary
+      - build-macos-intel-fallback
+    if: |
+      always() &&
+      startsWith(github.ref, 'refs/tags/v') &&
+      needs.build-windows.result == 'success' &&
+      needs.build-macos-apple-silicon.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List downloaded files
+        run: find artifacts -type f -printf "%p (%s bytes)\n"
+
+      - name: Merge per-arch latest-mac.yml feeds
+        run: |
+          python3 - <<'EOF'
+          import os, yaml
+
+          arm = 'artifacts/DogyMpegApp-macOS-AppleSilicon/latest-mac.yml'
+          intel = 'artifacts/DogyMpegApp-macOS-Intel/latest-mac.yml'
+
+          if os.path.exists(intel) and os.path.exists(arm):
+              with open(arm) as f:
+                  merged = yaml.safe_load(f)
+              with open(intel) as f:
+                  other = yaml.safe_load(f)
+              seen = {entry['url'] for entry in merged['files']}
+              merged['files'] += [e for e in other['files'] if e['url'] not in seen]
+              with open(arm, 'w') as f:
+                  yaml.safe_dump(merged, f, sort_keys=False)
+              os.remove(intel)
+              print('Merged Intel entries into latest-mac.yml')
+          else:
+              print('Intel feed absent — shipping arm64-only latest-mac.yml')
+          EOF
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/**/*.dmg
+            artifacts/**/*.pkg
+            artifacts/**/*.zip
+            artifacts/**/*.exe
+            artifacts/**/*.msi
+            artifacts/**/*.blockmap
+            artifacts/**/latest*.yml

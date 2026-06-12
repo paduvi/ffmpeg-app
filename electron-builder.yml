@@ -31,6 +31,10 @@ mac:
       arch: [x64, arm64]
     - target: pkg
       arch: [x64, arm64]
+    # electron-updater on macOS can only apply updates from a zip artifact;
+    # dmg/pkg are install media. Without this, mac auto-update silently fails.
+    - target: zip
+      arch: [x64, arm64]
 win:
   icon: resources/icon.ico
   target:

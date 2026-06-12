@@ -73,7 +73,7 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-CI runs a 3-job matrix — macOS Apple Silicon, macOS Intel, Windows x64 — then publishes the artifacts plus the `latest*.yml` update feeds to a GitHub Release. Installed apps pick up the new version on next launch via `electron-updater`.
+CI builds macOS Apple Silicon, macOS Intel (with a runner fallback), and Windows x64 in parallel, then a dedicated release job publishes the artifacts plus the `latest*.yml` update feeds to a GitHub Release. Installed apps pick up the new version on next launch via `electron-updater`.
 
 You can also trigger a manual run from the GitHub Actions tab (`workflow_dispatch`) and optionally pass a version override.
 

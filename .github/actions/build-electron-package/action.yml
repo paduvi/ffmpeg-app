@@ -1,0 +1,60 @@
+name: Build Electron Package
+description: >
+  npm ci, optional version override, electron-vite build, electron-builder
+  (no publishing — artifacts are uploaded and released by the release job).
+
+inputs:
+  eb-args:
+    description: 'electron-builder target args, e.g. "--mac --arm64"'
+    required: true
+  artifact-name:
+    description: 'Name for the uploaded artifact bundle'
+    required: true
+  app-version:
+    description: 'Version to write into package.json (empty = keep as-is)'
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: npm
+
+    - name: Install dependencies
+      shell: bash
+      run: npm ci
+
+    - name: Set version
+      if: inputs.app-version != ''
+      shell: bash
+      run: |
+        node -e "const fs=require('fs'),p=JSON.parse(fs.readFileSync('package.json','utf8'));p.version='${{ inputs.app-version }}';fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
+        echo "Set version to ${{ inputs.app-version }}"
+
+    - name: Build
+      shell: bash
+      run: npm run build
+
+    - name: Package
+      shell: bash
+      run: npx electron-builder ${{ inputs.eb-args }} --publish never
+
+    # latest*.yml are the electron-updater feeds; .blockmap enables
+    # differential downloads. Both must reach the GitHub Release.
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: |
+          release/**/*.dmg
+          release/**/*.pkg
+          release/**/*.zip
+          release/**/*.exe
+          release/**/*.msi
+          release/**/*.blockmap
+          release/**/latest*.yml
+        if-no-files-found: error
+        retention-days: 30
