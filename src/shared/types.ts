@@ -11,6 +11,31 @@ export type CompressionPreset =
 
 export type AudioCodec = 'aac' | 'copy' | 'mp3' | 'opus'
 
+export type GpuVendor = 'apple' | 'nvidia' | 'amd' | 'intel' | 'none'
+
+export type GpuInfo = {
+  vendor: GpuVendor
+  model: string
+  vramMb?: number
+  driverVersion?: string
+}
+
+/** Video encoders the compression ladder can select; libx264 is the CPU fallback. */
+export type VideoEncoder = 'h264_videotoolbox' | 'h264_nvenc' | 'h264_qsv' | 'h264_amf' | 'libx264'
+
+/** Cached encoder capability probe, keyed by the ffmpeg binary that was probed. */
+export type EncoderProbe = {
+  ffmpegPath: string
+  encoder: VideoEncoder
+}
+
+/** Effective acceleration status shown in Settings → Performance. */
+export type GpuStatus = {
+  gpu: GpuInfo
+  inferenceBackend: 'CoreML' | 'DirectML' | 'CPU'
+  videoEncoder: VideoEncoder
+}
+
 export type Settings = {
   audioCodec: AudioCodec
   preset: CompressionPreset
@@ -19,6 +44,13 @@ export type Settings = {
   ffmpegLocation: string
   container: string
   videoExtension: string
+  /** GPU-first encoding ('auto') or force libx264 ('off'). */
+  hwEncoding: 'auto' | 'off'
+  /** Last sample image picked on the Cutting page; null = use the default sample. */
+  lastSampleImageId: number | null
+  /** Detection/probe caches — managed by gpu.ts / encoders.ts, not user-edited. */
+  gpuInfo: GpuInfo | null
+  encoderProbe: EncoderProbe | null
 }
 
 export type SampleImage = {

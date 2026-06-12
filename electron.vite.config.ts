@@ -14,7 +14,7 @@ export default defineConfig({
       rollupOptions: {
         // Native modules in optionalDependencies are missed by externalizeDepsPlugin;
         // list them explicitly so Rollup never tries to bundle them.
-        external: ['better-sqlite3', 'sharp', 'onnxruntime-node', 'ffmpeg-static', '@tensorflow/tfjs-node']
+        external: ['better-sqlite3', 'sharp', 'onnxruntime-node', 'ffmpeg-static']
       }
     }
   },

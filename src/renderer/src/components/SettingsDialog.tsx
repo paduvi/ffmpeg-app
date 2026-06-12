@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import {
+  Badge,
   Button,
+  Divider,
   Group,
   Modal,
   Select,
@@ -10,7 +12,7 @@ import {
   Text,
   TextInput
 } from '@mantine/core'
-import type { AudioCodec, CompressionPreset, Settings } from '@shared/types'
+import type { AudioCodec, CompressionPreset, GpuStatus, Settings } from '@shared/types'
 
 const AUDIO_CODECS: { value: AudioCodec; label: string }[] = [
   { value: 'aac', label: 'AAC (recommended)' },
@@ -46,10 +48,13 @@ type Props = {
 
 export function SettingsDialog({ opened, onClose }: Props) {
   const [draft, setDraft] = useState<Settings | null>(null)
+  const [gpuStatus, setGpuStatus] = useState<GpuStatus | null>(null)
+  const [reprobing, setReprobing] = useState(false)
 
   useEffect(() => {
     if (opened) {
       window.api.settings.getAll().then((s) => setDraft({ ...s }))
+      window.api.gpu.getStatus().then(setGpuStatus)
     }
   }, [opened])
 
@@ -66,9 +71,19 @@ export function SettingsDialog({ opened, onClose }: Props) {
       window.api.settings.set('useDefaultFfmpeg', draft.useDefaultFfmpeg),
       window.api.settings.set('ffmpegLocation', draft.ffmpegLocation),
       window.api.settings.set('container', draft.container),
-      window.api.settings.set('videoExtension', draft.videoExtension)
+      window.api.settings.set('videoExtension', draft.videoExtension),
+      window.api.settings.set('hwEncoding', draft.hwEncoding)
     ])
     onClose()
+  }
+
+  const reprobe = async (): Promise<void> => {
+    setReprobing(true)
+    try {
+      setGpuStatus(await window.api.gpu.reprobe())
+    } finally {
+      setReprobing(false)
+    }
   }
 
   const resetDefaults = async (): Promise<void> => {
@@ -149,6 +164,51 @@ export function SettingsDialog({ opened, onClose }: Props) {
           value={draft.videoExtension}
           onChange={(v) => update('videoExtension', v ?? 'mp4')}
         />
+
+        <Divider label="Performance" labelPosition="left" />
+
+        <Switch
+          label="Hardware (GPU) video encoding"
+          description="Use the GPU encoder when available; falls back to libx264 automatically"
+          checked={draft.hwEncoding === 'auto'}
+          onChange={(e) => update('hwEncoding', e.currentTarget.checked ? 'auto' : 'off')}
+        />
+
+        {gpuStatus && (
+          <Stack gap={6}>
+            <Group gap="xs">
+              <Text size="sm" fw={500}>
+                GPU:
+              </Text>
+              <Text size="sm">{gpuStatus.gpu.model}</Text>
+              {gpuStatus.gpu.vramMb ? (
+                <Text size="xs" c="dimmed">
+                  {Math.round(gpuStatus.gpu.vramMb / 1024)} GB
+                </Text>
+              ) : null}
+            </Group>
+            <Group gap="xs">
+              <Text size="sm" fw={500}>
+                Inference:
+              </Text>
+              <Badge variant="light">{gpuStatus.inferenceBackend}</Badge>
+              <Text size="sm" fw={500} ml="sm">
+                Encoder:
+              </Text>
+              <Badge variant="light" color={gpuStatus.videoEncoder === 'libx264' ? 'gray' : 'teal'}>
+                {gpuStatus.videoEncoder}
+              </Badge>
+            </Group>
+            <Group gap="xs">
+              <Button size="xs" variant="light" loading={reprobing} onClick={reprobe}>
+                Re-detect hardware
+              </Button>
+              <Text size="xs" c="dimmed">
+                Encoder toggle takes effect on Save.
+              </Text>
+            </Group>
+          </Stack>
+        )}
 
         <Group justify="space-between" mt="md">
           <Button variant="subtle" color="gray" onClick={resetDefaults}>

@@ -1,6 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { CutMode, Settings, SampleImage, VideoFile, FileProgress } from '../shared/types'
+import type {
+  CutMode,
+  GpuStatus,
+  Settings,
+  SampleImage,
+  VideoFile,
+  FileProgress
+} from '../shared/types'
 
 const api = {
   app: {
@@ -32,6 +39,11 @@ const api = {
     insert: (name: string, path: string): Promise<SampleImage> =>
       ipcRenderer.invoke('samples:insert', name, path),
     remove: (id: number): Promise<void> => ipcRenderer.invoke('samples:remove', id)
+  },
+
+  gpu: {
+    getStatus: (): Promise<GpuStatus> => ipcRenderer.invoke('gpu:getStatus'),
+    reprobe: (): Promise<GpuStatus> => ipcRenderer.invoke('gpu:reprobe')
   },
 
   compression: {

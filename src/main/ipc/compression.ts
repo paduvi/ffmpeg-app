@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { compressVideos, type CompressionJob } from '../services/compression'
+import { notifyJobDone } from '../services/notify'
 import log from '../logger'
 
 const activeJobs = new Map<string, AbortController>()
@@ -20,9 +21,13 @@ export function registerCompressionHandlers(): void {
       },
       ac.signal
     )
-      .then(({ outputDir }) => {
+      .then(({ outputs, outputDir }) => {
         if (!sender.isDestroyed()) sender.send('compression:done', jobId, outputDir)
         log.info(`Compression job ${jobId} completed → ${outputDir}`)
+        if (!ac.signal.aborted) {
+          const count = outputs.filter(Boolean).length
+          notifyJobDone('Compression finished', `${count} file${count === 1 ? '' : 's'} compressed`)
+        }
       })
       .catch((err) => {
         log.error(`Compression job ${jobId} failed`, err)

@@ -6,7 +6,7 @@
   "author": "Dogy Inc.",
   "license": "MIT",
   "scripts": {
-    "postinstall": "electron-rebuild -f -w better-sqlite3 && electron-rebuild -f -w @tensorflow/tfjs-node",
+    "postinstall": "electron-rebuild -f -w better-sqlite3",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
@@ -15,8 +15,7 @@
     "start": "electron-vite preview",
     "package": "electron-vite build && electron-builder",
     "package:mac": "electron-vite build && electron-builder --mac",
-    "package:win": "electron-vite build && electron-builder --win",
-    "package:linux": "electron-vite build && electron-builder --linux"
+    "package:win": "electron-vite build && electron-builder --win"
   },
   "dependencies": {
     "@mantine/core": "^7.13.0",
@@ -24,7 +23,6 @@
     "@mantine/modals": "^7.13.0",
     "@mantine/notifications": "^7.13.0",
     "@tabler/icons-react": "^3.44.0",
-    "@tensorflow/tfjs-node": "^4.22.0",
     "electron-log": "^5.2.0",
     "electron-store": "^8.2.0",
     "electron-updater": "^6.3.9",

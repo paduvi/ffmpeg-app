@@ -1,6 +1,7 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { cutVideos } from '../services/cutting'
+import { notifyJobDone } from '../services/notify'
 import type { CutMode } from '../../shared/types'
 import log from '../logger'
 
@@ -22,9 +23,15 @@ export function registerCuttingHandlers(): void {
         (progress) => win?.webContents.send('cutting:progress', jobId, progress),
         controller.signal
       )
-        .then(({ outputDir }) => {
+        .then(({ outputs, outputDir }) => {
           win?.webContents.send('cutting:done', jobId, outputDir)
           log.info(`Cutting job ${jobId} done → ${outputDir}`)
+          if (!controller.signal.aborted) {
+            notifyJobDone(
+              'Cutting finished',
+              `${outputs.length} file${outputs.length === 1 ? '' : 's'} processed`
+            )
+          }
         })
         .catch((err) => {
           if (!controller.signal.aborted) log.error(`Cutting job ${jobId} failed`, err)

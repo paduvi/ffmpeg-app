@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Box, Button, Group, Modal, Progress, ScrollArea, Stack, Text } from '@mantine/core'
 import { IconCheck, IconFolderOpen } from '@tabler/icons-react'
 import type { FileProgress } from '@shared/types'
@@ -14,9 +14,23 @@ type Props = {
   onClose: () => void
 }
 
+/** Per-row progress-rate tracker for the remaining-time estimate. */
+type RateInfo = { lastValue: number; lastTime: number; rate: number | null }
+
+function formatEta(ms: number): string {
+  const totalS = Math.ceil(ms / 1000)
+  if (totalS < 60) return `${totalS}s`
+  const m = Math.floor(totalS / 60)
+  if (m < 60) return `${m}m ${String(totalS % 60).padStart(2, '0')}s`
+  return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`
+}
+
 export function ProgressModal({ opened, jobId, feature, initialFiles, onCancel, onClose }: Props) {
   const [files, setFiles] = useState<FileProgress[]>([])
   const [outputDir, setOutputDir] = useState<string | null>(null)
+  // Estimated remaining time, derived renderer-side from value deltas — the
+  // services only ever send FileProgress, never ETA fields.
+  const rates = useRef<Map<number, RateInfo>>(new Map())
 
   const allDone = files.length > 0 && files.every((f) => f.done)
   const finished = outputDir !== null
@@ -27,10 +41,35 @@ export function ProgressModal({ opened, jobId, feature, initialFiles, onCancel, 
     // IPC progress event arrives (which might come before this effect runs).
     setFiles(initialFiles.length > 0 ? initialFiles : [])
     setOutputDir(null)
+    rates.current.clear()
 
     const api = window.api[feature]
     const offProgress = api.onProgress((jid, progress) => {
-      if (jid === jobId) setFiles(progress)
+      if (jid !== jobId) return
+      const now = Date.now()
+      progress.forEach((fp, i) => {
+        if (fp.done) {
+          rates.current.delete(i)
+          return
+        }
+        if (!fp.active || fp.value <= 0) return
+        const prev = rates.current.get(i)
+        if (!prev || fp.value < prev.lastValue) {
+          // First sample, or value went backwards (software-retry reset) — start over
+          rates.current.set(i, { lastValue: fp.value, lastTime: now, rate: null })
+          return
+        }
+        const dv = fp.value - prev.lastValue
+        const dt = now - prev.lastTime
+        if (dv > 0 && dt > 0) {
+          // EMA-smoothed progress rate (fraction per ms) absorbs the jitter of
+          // per-frame and per-ffmpeg-line update cadences.
+          const inst = dv / dt
+          const rate = prev.rate === null ? inst : 0.3 * inst + 0.7 * prev.rate
+          rates.current.set(i, { lastValue: fp.value, lastTime: now, rate })
+        }
+      })
+      setFiles(progress)
     })
     const offDone = api.onDone((jid, dir) => {
       if (jid === jobId) {
@@ -63,7 +102,20 @@ export function ProgressModal({ opened, jobId, feature, initialFiles, onCancel, 
       <Stack gap="md">
         <ScrollArea.Autosize mah={360}>
           <Stack gap="sm" pr={4}>
-            {files.map((fp, i) => (
+            {files.map((fp, i) => {
+              // Show an estimate only once there is enough signal: some real
+              // progress, a smoothed rate, and a sane (<24 h) extrapolation.
+              let eta: string | null = null
+              if (fp.active && !fp.done && fp.value >= 0.05 && fp.value < 1) {
+                const rate = rates.current.get(i)?.rate
+                if (rate) {
+                  const remainingMs = (1 - fp.value) / rate
+                  if (isFinite(remainingMs) && remainingMs > 0 && remainingMs < 24 * 3600 * 1000) {
+                    eta = formatEta(remainingMs)
+                  }
+                }
+              }
+              return (
               <Box key={i}>
                 <Group justify="space-between" mb={4} gap="xs" wrap="nowrap">
                   <Text size="sm" truncate style={{ flex: 1, minWidth: 0 }}>
@@ -78,7 +130,9 @@ export function ProgressModal({ opened, jobId, feature, initialFiles, onCancel, 
                     <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
                       {fp.active && fp.value === 0
                         ? 'Preparing…'
-                        : `${Math.round(fp.value * 100)}%`}
+                        : eta
+                          ? `${Math.round(fp.value * 100)}% · ~${eta} left`
+                          : `${Math.round(fp.value * 100)}%`}
                     </Text>
                   )}
                 </Group>
@@ -91,7 +145,8 @@ export function ProgressModal({ opened, jobId, feature, initialFiles, onCancel, 
                   radius="xl"
                 />
               </Box>
-            ))}
+              )
+            })}
 
             {files.length === 0 && (
               <Text size="sm" c="dimmed" ta="center">

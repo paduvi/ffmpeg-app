@@ -8,12 +8,12 @@ DogyMpegApp is a cross-platform desktop GUI application built with **Electron**,
 - **Intelligent Video Cutting** — A bundled ResNet18 ONNX model finds the frame most similar to a sample image, then cuts there with a fast stream-copy (`-c copy`). Two cut modes:
   - **End of match** *(default)* — cuts after the matched sequence ends, useful for skipping intros.
   - **Start of match** — cuts at the first matching frame.
-- **Three-phase progress** — the cutting progress bar tracks frame extraction, similarity search, and the final cut separately so you always see something moving.
+- **Streaming pipeline** — frame extraction and similarity search run as one overlapped pipeline with batched GPU inference; a completed match stops the decode early, so results often arrive before the whole video is read.
 - **Batch Processing** — run multiple files with one-click cancellation; only fully-completed files are kept on disk (partial files from cancelled jobs are deleted automatically).
 - **Theme Support** — Light, dark, and system theme via the File menu.
 - **GPU Acceleration** — ONNX inference uses CoreML on macOS (Apple Neural Engine / Metal) and DirectML on Windows (GPU via DirectX 12) with automatic CPU fallback.
 - **Auto-Update** — Installed apps check for new releases on launch and prompt to restart when an update is ready.
-- **Cross-Platform** — Ships on macOS (Apple Silicon + Intel), Windows, and Linux.
+- **Cross-Platform** — Ships on macOS (Apple Silicon + Intel) and Windows.
 
 ## Technology Stack
 
@@ -21,7 +21,7 @@ DogyMpegApp is a cross-platform desktop GUI application built with **Electron**,
 - **UI:** React 18 + TypeScript + Mantine v7
 - **Build:** electron-vite (dev) + electron-builder (packaging)
 - **Core Engine:** FFmpeg via `ffmpeg-static` (bundled per platform; override path in Settings)
-- **ML:** `onnxruntime-node` for inference, `sharp` for image preprocessing, `@tensorflow/tfjs-node` for tensor ops
+- **ML:** `onnxruntime-node` for batched inference (CoreML on macOS, DirectML on Windows), `sharp` for sample-image preprocessing
 - **Storage:** `better-sqlite3` (sample images), `electron-store` (user preferences)
 - **Auto-update:** `electron-updater` against GitHub Releases
 
@@ -29,7 +29,6 @@ DogyMpegApp is a cross-platform desktop GUI application built with **Electron**,
 
 - Node.js 20 or newer
 - npm
-- On Linux: build tools for native modules — typically `build-essential` + `python3`
 
 ## Getting Started
 
@@ -61,7 +60,6 @@ Or target a specific platform:
 ```bash
 npm run package:mac     # DMG + PKG (x64, arm64)
 npm run package:win     # NSIS + MSI (x64)
-npm run package:linux   # AppImage + deb (x64, arm64)
 ```
 
 Output lands in `release/`.
@@ -75,7 +73,7 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-CI runs a 5-job matrix — macOS Apple Silicon, macOS Intel, Windows x64, Linux x64, Linux arm64 — then publishes the artifacts plus the `latest*.yml` update feeds to a GitHub Release. Installed apps pick up the new version on next launch via `electron-updater`.
+CI runs a 3-job matrix — macOS Apple Silicon, macOS Intel, Windows x64 — then publishes the artifacts plus the `latest*.yml` update feeds to a GitHub Release. Installed apps pick up the new version on next launch via `electron-updater`.
 
 You can also trigger a manual run from the GitHub Actions tab (`workflow_dispatch`) and optionally pass a version override.
 
@@ -89,7 +87,7 @@ You can also trigger a manual run from the GitHub Actions tab (`workflow_dispatc
 | `npm run format` | Prettier |
 | `npm run build` | Production bundle (no installer) |
 | `npm run package` | Build installers for the current OS |
-| `npm run package:mac` / `:win` / `:linux` | Build installers for a specific OS |
+| `npm run package:mac` / `:win` | Build installers for a specific OS |
 
 ## License
 

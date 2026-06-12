@@ -9,6 +9,7 @@ import { registerSettingsHandlers } from './ipc/settings'
 import { registerCompressionHandlers } from './ipc/compression'
 import { registerCuttingHandlers } from './ipc/cutting'
 import { registerSamplesHandlers } from './ipc/samples'
+import { registerGpuHandlers } from './ipc/gpu'
 import { initOnnxSession } from './services/onnx'
 import { initUpdater } from './updater'
 
@@ -55,6 +56,7 @@ async function bootstrap(): Promise<void> {
   registerCompressionHandlers()
   registerCuttingHandlers()
   registerSamplesHandlers()
+  registerGpuHandlers()
   ipcMain.handle('app:quit', () => app.quit())
   initUpdater()
 
@@ -86,7 +88,7 @@ async function initServices(): Promise<void> {
     openDb()
     await Promise.all([
       initOnnxSession(),
-      new Promise<void>((r) => setTimeout(r, 2000))
+      new Promise<void>((r) => setTimeout(r, 1000))
     ])
     log.info('All services initialised')
   } catch (err) {

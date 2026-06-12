@@ -25,12 +25,6 @@ jobs:
           - name: Windows-x64
             os: windows-latest
             eb_args: '--win --x64'
-          - name: Linux-x64
-            os: ubuntu-latest
-            eb_args: '--linux --x64'
-          - name: Linux-arm64
-            os: ubuntu-24.04-arm
-            eb_args: '--linux --arm64'
 
     name: Build (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
@@ -85,7 +79,5 @@ jobs:
             release/**/*.pkg
             release/**/*.exe
             release/**/*.msi
-            release/**/*.AppImage
-            release/**/*.deb
           if-no-files-found: warn
           retention-days: 7

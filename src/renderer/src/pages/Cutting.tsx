@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button, Grid, Group, Image, SegmentedControl, Stack, Text, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { IconPlus, IconScissors, IconPhoto } from '@tabler/icons-react'
+import { IconPlus, IconScissors, IconPhoto, IconTrash } from '@tabler/icons-react'
 import type { CutMode, FileProgress, SampleImage, VideoFile } from '@shared/types'
 import { VideoTable } from '../components/VideoTable'
 import { SampleImageTable } from '../components/SampleImageTable'
@@ -18,8 +18,21 @@ export function Cutting() {
   const [progressOpened, { open: openProgress, close: closeProgress }] = useDisclosure(false)
 
   useEffect(() => {
-    window.api.samples.getAll().then(setSamples)
+    // Restore the last-used sample; fall back to the default (permanent) one.
+    Promise.all([window.api.samples.getAll(), window.api.settings.get('lastSampleImageId')]).then(
+      ([all, lastId]) => {
+        setSamples(all)
+        const stored = all.find((s) => s.id === lastId)
+        const fallback = all.find((s) => s.isPermanent) ?? all[0]
+        setSelectedSampleId((stored ?? fallback)?.id ?? null)
+      }
+    )
   }, [])
+
+  const selectSample = (id: number): void => {
+    setSelectedSampleId(id)
+    void window.api.settings.set('lastSampleImageId', id)
+  }
 
   const selectedSample = samples.find((s) => s.id === selectedSampleId) ?? null
 
@@ -38,19 +51,31 @@ export function Cutting() {
     const name = path.split('/').pop()?.replace(/\.[^.]+$/, '') ?? 'sample'
     const record = await window.api.samples.insert(name, path)
     setSamples((prev) => [...prev, record])
-    setSelectedSampleId(record.id)
+    selectSample(record.id)
   }
 
   const removeSample = async (id: number): Promise<void> => {
     await window.api.samples.remove(id)
-    setSamples((prev) => prev.filter((s) => s.id !== id))
-    if (selectedSampleId === id) setSelectedSampleId(null)
+    const remaining = samples.filter((s) => s.id !== id)
+    setSamples(remaining)
+    if (selectedSampleId === id) {
+      // Removed the active sample — fall back to the default and persist it
+      const fallback = remaining.find((s) => s.isPermanent) ?? remaining[0] ?? null
+      setSelectedSampleId(fallback?.id ?? null)
+      void window.api.settings.set('lastSampleImageId', fallback?.id ?? null)
+    }
+  }
+
+  const removeSelected = (): void => {
+    setFiles((prev) => prev.filter((f) => !selectedPaths.has(f.path)))
+    setSelectedPaths(new Set())
   }
 
   const toggle = (path: string): void =>
     setSelectedPaths((prev) => {
       const next = new Set(prev)
-      next.has(path) ? next.delete(path) : next.add(path)
+      if (next.has(path)) next.delete(path)
+      else next.add(path)
       return next
     })
 
@@ -91,6 +116,15 @@ export function Cutting() {
             <Group align="center">
               <Button leftSection={<IconPlus size={16} />} onClick={addVideos}>
                 Add Video
+              </Button>
+              <Button
+                leftSection={<IconTrash size={16} />}
+                variant="light"
+                color="red"
+                disabled={selectedPaths.size === 0}
+                onClick={removeSelected}
+              >
+                Remove
               </Button>
               <Button
                 leftSection={<IconScissors size={16} />}
@@ -135,7 +169,7 @@ export function Cutting() {
             <SampleImageTable
               samples={samples}
               selectedId={selectedSampleId}
-              onSelect={setSelectedSampleId}
+              onSelect={selectSample}
               onRemove={removeSample}
             />
             {selectedSample && (

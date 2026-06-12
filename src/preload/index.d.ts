@@ -1,5 +1,12 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-import type { CutMode, Settings, SampleImage, VideoFile, FileProgress } from '../shared/types'
+import type {
+  CutMode,
+  GpuStatus,
+  Settings,
+  SampleImage,
+  VideoFile,
+  FileProgress
+} from '../shared/types'
 
 type Unsubscribe = () => void
 
@@ -28,6 +35,10 @@ declare global {
         getAll: () => Promise<SampleImage[]>
         insert: (name: string, path: string) => Promise<SampleImage>
         remove: (id: number) => Promise<void>
+      }
+      gpu: {
+        getStatus: () => Promise<GpuStatus>
+        reprobe: () => Promise<GpuStatus>
       }
       compression: {
         start: (jobs: { input: string; output?: string }[]) => Promise<string>
