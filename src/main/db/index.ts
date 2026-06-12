@@ -44,10 +44,7 @@ function seedDefaultSamples(db: Database.Database): void {
     ? join(process.cwd(), 'resources', 'sample-images')
     : join(process.resourcesPath, 'sample-images')
 
-  const defaults = [
-    { name: 'Dog Logo', file: 'dog_logo.jpg' },
-    { name: 'Sample', file: 'sample.png' }
-  ]
+  const defaults = [{ name: 'Sample', file: 'sample.png' }]
 
   const insert = db.prepare(
     'INSERT INTO sample_images (name, path, is_permanent) VALUES (?, ?, 1)'
