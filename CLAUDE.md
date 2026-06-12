@@ -30,7 +30,7 @@ This project was migrated from JavaFX (Java 21). The Java history is preserved i
 - `src/shared/types.ts` — types shared between main, preload, and renderer. Add all cross-boundary DTOs and enums here.
 - `resources/` — packaged static assets. `models/resnet18_identity.onnx`, `icon.{icns,ico,png}`, `img/` (JavaFX-era icons used as buttons), `sample-images/` (permanent built-in samples seeded to SQLite on first launch).
 - `electron.vite.config.ts` — Vite + electron-vite config. Three entry points (main/preload/renderer) with `@renderer` / `@shared` path aliases.
-- `electron-builder.yml` — packaging config. Targets: mac dmg+pkg (x64+arm64), win nsis+msi (x64). `publish: github` so `electron-updater` finds release feeds.
+- `electron-builder.yml` — packaging config. Targets: mac dmg+pkg+zip, win nsis+msi. **No arch arrays in the config** — arch comes from CLI flags (`--arm64`/`--x64`), one per invocation: config arch overrides the CLI and makes a single run build both arches, which races the pkg target on a shared intermediate file and packages host-arch sharp into the foreign-arch app. `publish: github` so `electron-updater` finds release feeds.
 - `.github/workflows/build.yml` — prepare (version) → build jobs (Windows x64, macOS arm64, macOS Intel primary on `macos-15-intel` with a `macos-26-intel` fallback) → release job. Build jobs never publish (`--publish never`, upload artifacts); the release job alone has `permissions: contents: write` and publishes via `softprops/action-gh-release`. Shared build steps live in `.github/actions/build-electron-package/action.yml`. macOS Intel is optional for a release; Windows + macOS arm64 are required.
 
 ---
@@ -267,7 +267,7 @@ npm run typecheck     # tsc --noEmit for both Node and Web TS projects
 npm run lint          # eslint
 npm run build         # production bundle (no installer)
 npm run package       # electron-builder for current OS
-npm run package:mac   # DMG + PKG (x64, arm64)
+npm run package:mac   # DMG + PKG + ZIP (current arch only — CI builds both arches)
 npm run package:win   # NSIS + MSI (x64)
 ```
 

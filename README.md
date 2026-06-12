@@ -58,7 +58,7 @@ npm run package
 Or target a specific platform:
 
 ```bash
-npm run package:mac     # DMG + PKG (x64, arm64)
+npm run package:mac     # DMG + PKG + ZIP (current arch; CI builds both arches)
 npm run package:win     # NSIS + MSI (x64)
 ```
 

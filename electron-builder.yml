@@ -23,25 +23,25 @@ asarUnpack:
   - '**/node_modules/sharp/**'
   - '**/node_modules/onnxruntime-node/**'
   - '**/node_modules/better-sqlite3/**'
+# Arch is selected per CI job via CLI flags (--arm64 / --x64) — never list
+# arch arrays here. Config arch overrides the CLI, making one invocation build
+# both arches, which (a) races electron-builder's pkg target on a shared
+# intermediate file (ENOENT unlink com.*.pkg) and (b) packages host-arch sharp
+# binaries into the foreign-arch app.
 mac:
   category: public.app-category.video
   icon: resources/icon.icns
   target:
-    - target: dmg
-      arch: [x64, arm64]
-    - target: pkg
-      arch: [x64, arm64]
+    - dmg
+    - pkg
     # electron-updater on macOS can only apply updates from a zip artifact;
     # dmg/pkg are install media. Without this, mac auto-update silently fails.
-    - target: zip
-      arch: [x64, arm64]
+    - zip
 win:
   icon: resources/icon.ico
   target:
-    - target: nsis
-      arch: [x64]
-    - target: msi
-      arch: [x64]
+    - nsis
+    - msi
 publish:
   provider: github
   releaseType: release
