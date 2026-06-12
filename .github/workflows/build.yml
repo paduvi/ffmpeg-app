@@ -117,8 +117,9 @@ jobs:
   # Publish a GitHub Release on v* tags.
   #   - Windows AND macOS Apple Silicon must succeed.
   #   - macOS Intel is optional (primary/fallback both failing still releases).
-  # The two per-arch latest-mac.yml feeds are merged so electron-updater
-  # serves both architectures from one feed file.
+  # The two mac architectures stay fully separate: Apple Silicon ships the
+  # default latest-mac.yml feed; the Intel feed is renamed latest-x64-mac.yml
+  # and Intel installs request it via autoUpdater.channel (see updater.ts).
   # ===========================================================================
   release:
     name: Create GitHub Release
@@ -144,28 +145,15 @@ jobs:
       - name: List downloaded files
         run: find artifacts -type f -printf "%p (%s bytes)\n"
 
-      - name: Merge per-arch latest-mac.yml feeds
+      - name: Rename Intel update feed (per-arch feeds, no merging)
         run: |
-          python3 - <<'EOF'
-          import os, yaml
-
-          arm = 'artifacts/DogyMpegApp-macOS-AppleSilicon/latest-mac.yml'
-          intel = 'artifacts/DogyMpegApp-macOS-Intel/latest-mac.yml'
-
-          if os.path.exists(intel) and os.path.exists(arm):
-              with open(arm) as f:
-                  merged = yaml.safe_load(f)
-              with open(intel) as f:
-                  other = yaml.safe_load(f)
-              seen = {entry['url'] for entry in merged['files']}
-              merged['files'] += [e for e in other['files'] if e['url'] not in seen]
-              with open(arm, 'w') as f:
-                  yaml.safe_dump(merged, f, sort_keys=False)
-              os.remove(intel)
-              print('Merged Intel entries into latest-mac.yml')
-          else:
-              print('Intel feed absent — shipping arm64-only latest-mac.yml')
-          EOF
+          INTEL_FEED=artifacts/DogyMpegApp-macOS-Intel/latest-mac.yml
+          if [[ -f "$INTEL_FEED" ]]; then
+            mv "$INTEL_FEED" artifacts/DogyMpegApp-macOS-Intel/latest-x64-mac.yml
+            echo "Intel feed renamed to latest-x64-mac.yml"
+          else
+            echo "No Intel feed in this run (Intel build optional)"
+          fi
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

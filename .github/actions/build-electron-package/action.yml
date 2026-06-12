@@ -44,17 +44,20 @@ runs:
 
     # latest*.yml are the electron-updater feeds; .blockmap enables
     # differential downloads. Both must reach the GitHub Release.
+    # Single-level globs only: release/** would sweep the win-unpacked/ and
+    # mac-arm64/ staging trees (raw app .exe, elevate.exe, unpacked ffmpeg)
+    # into the artifact — installers and feeds live at the release/ root.
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.artifact-name }}
         path: |
-          release/**/*.dmg
-          release/**/*.pkg
-          release/**/*.zip
-          release/**/*.exe
-          release/**/*.msi
-          release/**/*.blockmap
-          release/**/latest*.yml
+          release/*.dmg
+          release/*.pkg
+          release/*.zip
+          release/*.exe
+          release/*.msi
+          release/*.blockmap
+          release/latest*.yml
         if-no-files-found: error
         retention-days: 30

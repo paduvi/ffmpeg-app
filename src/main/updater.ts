@@ -14,6 +14,13 @@ export function initUpdater(): void {
   autoUpdater.logger = log
   autoUpdater.autoDownload = true
 
+  // Per-arch mac update feeds (not merged): Apple Silicon uses the default
+  // 'latest' channel → latest-mac.yml; Intel requests latest-x64-mac.yml,
+  // which the release workflow renames from the Intel job's feed.
+  if (process.platform === 'darwin' && process.arch === 'x64') {
+    autoUpdater.channel = 'latest-x64'
+  }
+
   autoUpdater.on('update-available', (info) => {
     log.info(`Update available: v${info.version}`)
   })
