@@ -211,7 +211,7 @@ The plan is therefore encode/decode-only.
 
 ## Cutting pipeline: streaming + batched inference (implemented June 2026)
 
-Replaced the sequential flow in `cutting.ts` (extract **all** frames → search one-by-one) with a producer–consumer pipeline: each frame is consumed the moment ffmpeg emits it, inference runs in fixed-size batches, and the producer is killed early once the cut point is known. The outer per-video loop is unchanged. Implemented across `frames.ts` (pipe producer), `cutting.ts` (batched consumer), `preprocess.ts` + `similarity.ts` (plain TS). The pipe fast-path shipped as the only producer — the JPEG/tmpdir fallback was never needed (end-to-end test showed 0.99 similarity parity with sharp's cover-crop).
+Replaced the sequential flow in `cutting.ts` (extract **all** frames → search one-by-one) with a producer–consumer pipeline: each frame is consumed the moment ffmpeg emits it, inference runs in fixed-size batches, and the producer is killed early once the cut point is known. Videos run in parallel via `pLimit(CUT_CONCURRENCY = 4)` — each pipeline is bound by its own ffmpeg decode process, the shared ONNX session accepts concurrent `run()` calls, and every pipeline submits the same constant batch shape (no per-job CoreML recompiles); sample embeddings are computed once per distinct sample image (promise-cached map). Implemented across `frames.ts` (pipe producer), `cutting.ts` (batched consumer), `preprocess.ts` + `similarity.ts` (plain TS). The pipe fast-path shipped as the only producer — the JPEG/tmpdir fallback was never needed (end-to-end test showed 0.99 similarity parity with sharp's cover-crop).
 
 ### Measured facts driving the design (June 2026, Apple Silicon dev machine)
 

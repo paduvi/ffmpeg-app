@@ -31,6 +31,9 @@ asarUnpack:
 mac:
   category: public.app-category.video
   icon: resources/icon.icns
+  # Always include the arch: electron-builder's default omits it for x64,
+  # making Intel artifacts look like arch-less duplicates on the release page.
+  artifactName: ${productName}-${version}-${arch}.${ext}
   target:
     - dmg
     - pkg
