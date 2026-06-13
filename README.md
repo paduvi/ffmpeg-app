@@ -9,7 +9,7 @@ A cross-platform desktop app (macOS + Windows) built with **Electron**, **React*
 - **Streaming pipeline** — extraction and similarity search overlap as one batched-inference pipeline; keyframe-only decoding plus early termination mean results often arrive before the whole video is read. Multiple videos process in parallel.
 - **Batch processing** — multiple files at once, per-file progress with live ETA and one-click cancel; partial outputs from cancelled jobs are removed automatically.
 - **GPU acceleration** — ONNX inference via CoreML (macOS) / DirectML (Windows); encode/decode via platform hardware. CPU fallback throughout.
-- **Desktop niceties** — light/dark/system theme, completion notifications with Dock bounce (macOS) / taskbar flash (Windows) when backgrounded, and auto-update on launch.
+- **Desktop niceties** — light/dark/system theme, completion notifications with Dock bounce (macOS) / taskbar flash (Windows) when backgrounded, and update checks on launch (Windows self-installs; macOS links to the releases page).
 
 ## Tech Stack
 
