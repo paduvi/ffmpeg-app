@@ -44,8 +44,6 @@ export type Settings = {
   ffmpegLocation: string
   container: string
   videoExtension: string
-  /** GPU-first encoding ('auto') or force libx264 ('off'). */
-  hwEncoding: 'auto' | 'off'
   /** Last sample image picked on the Cutting page; null = use the default sample. */
   lastSampleImageId: number | null
   /** Detection/probe caches — managed by gpu.ts / encoders.ts, not user-edited. */

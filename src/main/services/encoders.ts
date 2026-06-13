@@ -88,8 +88,6 @@ function hwCandidates(vendor: GpuVendor): VideoEncoder[] {
  * cached per ffmpeg binary path (changing the override in Settings re-probes).
  */
 export async function resolveVideoEncoder(): Promise<VideoEncoder> {
-  if (store.get('hwEncoding') === 'off') return 'libx264'
-
   const binary = resolveFfmpegPath()
   const cached = store.get('encoderProbe')
   if (cached && cached.ffmpegPath === binary) return cached.encoder

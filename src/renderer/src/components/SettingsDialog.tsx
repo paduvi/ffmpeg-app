@@ -71,8 +71,7 @@ export function SettingsDialog({ opened, onClose }: Props) {
       window.api.settings.set('useDefaultFfmpeg', draft.useDefaultFfmpeg),
       window.api.settings.set('ffmpegLocation', draft.ffmpegLocation),
       window.api.settings.set('container', draft.container),
-      window.api.settings.set('videoExtension', draft.videoExtension),
-      window.api.settings.set('hwEncoding', draft.hwEncoding)
+      window.api.settings.set('videoExtension', draft.videoExtension)
     ])
     onClose()
   }
@@ -167,12 +166,10 @@ export function SettingsDialog({ opened, onClose }: Props) {
 
         <Divider label="Performance" labelPosition="left" />
 
-        <Switch
-          label="Hardware (GPU) video encoding"
-          description="Use the GPU encoder when available; falls back to libx264 automatically"
-          checked={draft.hwEncoding === 'auto'}
-          onChange={(e) => update('hwEncoding', e.currentTarget.checked ? 'auto' : 'off')}
-        />
+        <Text size="xs" c="dimmed">
+          GPU video encoding is always used when available, with automatic fallback to
+          libx264.
+        </Text>
 
         {gpuStatus && (
           <Stack gap={6}>
@@ -203,9 +200,6 @@ export function SettingsDialog({ opened, onClose }: Props) {
               <Button size="xs" variant="light" loading={reprobing} onClick={reprobe}>
                 Re-detect hardware
               </Button>
-              <Text size="xs" c="dimmed">
-                Encoder toggle takes effect on Save.
-              </Text>
             </Group>
           </Stack>
         )}

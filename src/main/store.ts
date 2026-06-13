@@ -10,7 +10,6 @@ const store = new Store<Settings>({
     ffmpegLocation: '',
     container: 'mp4',
     videoExtension: 'mp4',
-    hwEncoding: 'auto',
     lastSampleImageId: null,
     gpuInfo: null,
     encoderProbe: null
