@@ -3,6 +3,8 @@
 *.iml
 *.log
 logs/
+.vscode/
+.claude/settings.local.json
 
 # Node / npm
 node_modules/

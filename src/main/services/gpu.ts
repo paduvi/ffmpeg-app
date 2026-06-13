@@ -6,6 +6,31 @@ import type { GpuInfo, GpuVendor } from '../../shared/types'
 
 const execFileAsync = promisify(execFile)
 
+// PowerShell executables to try, in order. `powershell.exe` (Windows PowerShell 5.1)
+// is not always on PATH — some machines only expose PowerShell 7 (`pwsh`) — so we try
+// the absolute Windows PowerShell path first (it ships with Windows and is resolvable
+// even when its directory is missing from PATH), then fall back to pwsh / PATH lookup.
+const POWERSHELL_CANDIDATES = [
+  `${process.env.SystemRoot ?? 'C:\\Windows'}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`,
+  'pwsh.exe',
+  'powershell.exe'
+]
+
+async function runPowerShell(command: string): Promise<string> {
+  let lastErr: unknown
+  for (const exe of POWERSHELL_CANDIDATES) {
+    try {
+      const { stdout } = await execFileAsync(exe, ['-NoProfile', '-Command', command], {
+        timeout: 20000
+      })
+      return stdout
+    } catch (err) {
+      lastErr = err
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('No usable PowerShell executable found')
+}
+
 function vendorFromName(name: string): GpuVendor {
   const n = name.toLowerCase()
   if (n.includes('apple')) return 'apple'
@@ -31,14 +56,8 @@ async function detectDarwin(): Promise<GpuInfo> {
 }
 
 async function detectWin32(): Promise<GpuInfo> {
-  const { stdout } = await execFileAsync(
-    'powershell.exe',
-    [
-      '-NoProfile',
-      '-Command',
-      'Get-CimInstance Win32_VideoController | Select-Object Name, AdapterRAM, DriverVersion | ConvertTo-Json'
-    ],
-    { timeout: 20000 }
+  const stdout = await runPowerShell(
+    'Get-CimInstance Win32_VideoController | Select-Object Name, AdapterRAM, DriverVersion | ConvertTo-Json'
   )
   type Adapter = { Name?: string; AdapterRAM?: number; DriverVersion?: string }
   const parsed = JSON.parse(stdout) as Adapter | Adapter[]
@@ -65,21 +84,23 @@ async function detectWin32(): Promise<GpuInfo> {
  * Detect the GPU once and cache the result in electron-store.
  * `force` re-runs detection (the Settings "re-probe" action).
  */
+const DETECTION_FAILED_MODEL = 'Unknown (detection failed)'
+
 export async function detectGpu(force = false): Promise<GpuInfo> {
   if (!force) {
     const cached = store.get('gpuInfo')
-    if (cached) return cached
+    // Ignore a previously cached failure so we retry instead of returning it forever.
+    if (cached && cached.model !== DETECTION_FAILED_MODEL) return cached
   }
 
-  let info: GpuInfo
   try {
-    info = process.platform === 'darwin' ? await detectDarwin() : await detectWin32()
+    const info = process.platform === 'darwin' ? await detectDarwin() : await detectWin32()
+    log.info(`GPU detected: ${info.vendor} — ${info.model}`)
+    store.set('gpuInfo', info)
+    return info
   } catch (err) {
     log.warn(`GPU detection failed: ${err instanceof Error ? err.message : String(err)}`)
-    info = { vendor: 'none', model: 'Unknown (detection failed)' }
+    // Do not cache failures — let the next launch or re-probe try again.
+    return { vendor: 'none', model: DETECTION_FAILED_MODEL }
   }
-
-  log.info(`GPU detected: ${info.vendor} — ${info.model}`)
-  store.set('gpuInfo', info)
-  return info
 }

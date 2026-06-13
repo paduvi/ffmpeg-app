@@ -6,7 +6,7 @@
   "author": "Dogy Inc.",
   "license": "MIT",
   "scripts": {
-    "postinstall": "electron-rebuild -f -w better-sqlite3",
+    "postinstall": "node scripts/rebuild-native.mjs",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
@@ -31,32 +31,33 @@
     "p-limit": "^3.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "sharp": "^0.33.5",
-    "tmp": "^0.2.3"
+    "sharp": "^0.33.5"
   },
   "optionalDependencies": {
-    "better-sqlite3": "^11.3.0"
+    "better-sqlite3": "^12.10.0"
+  },
+  "overrides": {
+    "esbuild": "0.28.1"
   },
   "devDependencies": {
     "@electron-toolkit/preload": "^3.0.1",
     "@electron-toolkit/utils": "^3.0.0",
-    "@electron/rebuild": "^3.7.1",
+    "@electron/rebuild": "^4.0.4",
     "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^20.16.10",
     "@types/react": "^18.3.10",
     "@types/react-dom": "^18.3.0",
-    "@types/tmp": "^0.2.6",
     "@typescript-eslint/eslint-plugin": "^8.7.0",
     "@typescript-eslint/parser": "^8.7.0",
     "@vitejs/plugin-react": "^4.3.1",
-    "electron": "^33.0.0",
-    "electron-builder": "^25.0.5",
-    "electron-vite": "^2.3.0",
+    "electron": "^41.7.2",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
     "eslint": "^8.57.1",
     "eslint-plugin-react": "^7.37.0",
     "eslint-plugin-react-hooks": "^4.6.2",
     "prettier": "^3.3.3",
     "typescript": "^5.6.2",
-    "vite": "^5.4.8"
+    "vite": "^7.3.5"
   }
 }

@@ -1,6 +1,7 @@
 import { Image, Radio, Table, Text, ActionIcon, Group } from '@mantine/core'
 import { IconTrash } from '@tabler/icons-react'
 import type { SampleImage } from '@shared/types'
+import { localFileUrl } from '../utils/localFile'
 
 type Props = {
   samples: SampleImage[]
@@ -50,7 +51,7 @@ export function SampleImageTable({ samples, selectedId, onSelect, onRemove }: Pr
                 </Text>
               </Table.Td>
               <Table.Td>
-                <Image src={`local-file://${s.path}`} w={60} h={40} fit="contain" radius="sm" />
+                <Image src={localFileUrl(s.path)} w={60} h={40} fit="contain" radius="sm" />
               </Table.Td>
               <Table.Td onClick={(e) => e.stopPropagation()}>
                 {!s.isPermanent && (

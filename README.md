@@ -17,7 +17,7 @@ DogyMpegApp is a cross-platform desktop GUI application built with **Electron**,
 
 ## Technology Stack
 
-- **Runtime:** Electron 33+ on Node 20+
+- **Runtime:** Electron 41 (ships its own Node 22 — end users install nothing)
 - **UI:** React 18 + TypeScript + Mantine v7
 - **Build:** electron-vite (dev) + electron-builder (packaging)
 - **Core Engine:** FFmpeg via `ffmpeg-static` (bundled per platform; override path in Settings)
@@ -27,8 +27,11 @@ DogyMpegApp is a cross-platform desktop GUI application built with **Electron**,
 
 ## Prerequisites
 
-- Node.js 20 or newer
+- **Node.js for the dev/build toolchain — 20.19+ recommended** (the minimum Vite 7 supports; any 20.19+, 22, or 24 works). This is your development machine's Node; it is independent of the Node 22 that Electron bundles for the shipped app. On Windows, Node 24 needs the toolset workaround — see [Windows build notes](#windows-build-notes).
 - npm
+- A C/C++ toolchain to build the `better-sqlite3` native module (used as a fallback when no matching prebuilt binary is available):
+  - **macOS:** Xcode Command Line Tools (`xcode-select --install`)
+  - **Windows:** Visual Studio (or Build Tools) with the **"Desktop development with C++"** workload (MSVC v142/v143). The clang-cl / LLVM toolset is **not** required.
 
 ## Getting Started
 
@@ -37,7 +40,23 @@ npm install
 npm run dev
 ```
 
-`npm run dev` launches the app with Vite HMR for the renderer and live restart for the main process.
+`npm install` builds `better-sqlite3` for the Electron runtime automatically (via the
+`postinstall` step). `npm run dev` launches the app with Vite HMR for the renderer and
+live restart for the main process.
+
+### Windows build notes
+
+Node 24's official Windows binaries are built with **ClangCL**, and Node's bundled
+`common.gypi` then forces the `ClangCL` MSBuild toolset onto every native addon. Most dev
+machines only have the MSVC toolset installed, so a from-source build would otherwise fail
+with `MSB8020: The build tools for ClangCL cannot be found`, and because `better-sqlite3`
+is an optional dependency npm would silently drop it (causing
+`Cannot find module 'better-sqlite3'` at startup).
+
+To avoid this, `npm install` runs `scripts/rebuild-native.mjs`, which on Windows sets
+`npm_config_clang=0` so node-gyp uses the standard **MSVC v142/v143** toolset instead of
+ClangCL. No Visual Studio changes are needed beyond the "Desktop development with C++"
+workload. The workaround is Windows-only and has no effect on macOS builds.
 
 ## Build
 
@@ -88,6 +107,26 @@ You can also trigger a manual run from the GitHub Actions tab (`workflow_dispatc
 | `npm run build` | Production bundle (no installer) |
 | `npm run package` | Build installers for the current OS |
 | `npm run package:mac` / `:win` | Build installers for a specific OS |
+
+## Security advisories
+
+`npm audit` reports **0 vulnerabilities**. Reaching that required several major upgrades:
+
+- **`electron` 33 → 41** (runtime). The advisories were fixed in Electron 40+, but Electron
+  is **capped at 41**: `better-sqlite3` 12.x ships no prebuilt binary for Electron 42's ABI
+  and its C++ source does not compile against Electron 42's V8 headers. Bump past 41 only
+  once `better-sqlite3` adds Electron 42 support.
+- **`electron-builder` 25 → 26**, **`@electron/rebuild` 3 → 4** — packaging/build tooling.
+- **`electron-vite` 2 → 5**, **`vite` 5 → 7** — dev/build tooling (vite is held at 7 because
+  `electron-vite` 5 and `@vitejs/plugin-react` 4 do not yet support vite 8).
+- **`esbuild`** is pinned to `0.28.1` via a top-level `overrides` entry. vite 7 and
+  electron-vite 5 request older esbuild (`^0.27` / `^0.25`) that fall in the vulnerable
+  range; the override forces the patched build across the whole tree. Revisit the override
+  when those tools adopt esbuild ≥ 0.28.1 on their own.
+- **`tmp` 0.2.3 → 0.2.7** — runtime dependency.
+
+After upgrading Electron, **re-test packaging** (`npm run package:win` / `:mac`) before a
+release — `electron-builder` 26 is a major bump.
 
 ## License
 

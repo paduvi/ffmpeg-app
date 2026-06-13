@@ -8,10 +8,10 @@ This project was migrated from JavaFX (Java 21). The Java history is preserved i
 
 ## Stack
 
-- Electron 33+, Node 20+
+- Electron 41 (bundles Node 22 at runtime); dev/build toolchain needs Node 20.19+ (the Vite 7 floor)
 - React 18 + TypeScript (strict)
 - **Mantine v7** UI kit (`@mantine/core`, `/hooks`, `/modals`, `/notifications`)
-- electron-vite (dev + build), electron-builder (packaging)
+- electron-vite 5 + Vite 7 (dev + build), electron-builder 26 (packaging); `esbuild` is pinned via a top-level `overrides` entry (Vite 7 / electron-vite 5 request a vulnerable range — see "Things not obvious from the code")
 - FFmpeg via `ffmpeg-static` (override path supported in Settings)
 - ML: `onnxruntime-node` (ResNet18 inference, CoreML on macOS / DirectML on Windows, constant batch-16 inputs) + `sharp` (sample-image decode/resize); normalization and cosine similarity are plain TypeScript (`preprocess.ts`, `similarity.ts`)
 - Persistence: `better-sqlite3` (sample images), `electron-store` (user prefs)
@@ -91,12 +91,15 @@ protocol.registerSchemesAsPrivileged([
 ])
 
 // Inside bootstrap() — after app.whenReady():
-protocol.handle('local-file', (request) =>
-  net.fetch(`file://${request.url.slice('local-file://'.length)}`)
-)
+protocol.handle('local-file', (request) => {
+  const encoded = new URL(request.url).pathname.replace(/^\/+/, '')
+  return net.fetch(pathToFileURL(decodeURIComponent(encoded)).toString())
+})
 ```
 
-The renderer's Content Security Policy (`index.html`) includes `img-src 'self' local-file: data:`. Reference sample images as `src={\`local-file://${path}\`}` in JSX.
+**The path must be percent-encoded into a single URL segment.** The renderer builds the URL via `localFileUrl(path)` (`src/renderer/src/utils/localFile.ts`): `` `local-file:///${encodeURIComponent(path)}` ``. A raw interpolation like `` `local-file://${path}` `` breaks on Windows — a path such as `C:\Users\…` puts the drive letter in the URL authority and Chromium mangles the backslashes / drops the colon (it happened to work on macOS only because POSIX paths start with `/`). The handler decodes the single segment and rebuilds an absolute `file://` URL with `pathToFileURL` (imported from `node:url`), which is correct on both platforms. Reference images as `src={localFileUrl(s.path)}` in JSX.
+
+The renderer's Content Security Policy (`index.html`) includes `img-src 'self' local-file: data:`.
 
 ### Renderer asset paths
 
@@ -238,7 +241,7 @@ Replaced the sequential flow in `cutting.ts` (extract **all** frames → search 
 
 - The heavy compute (ResNet18, ~1.8 GFLOPs/frame) already runs on GPU via ONNX EPs. Cosine similarity is ~10³ FLOPs/frame — six orders of magnitude smaller. A second GPU runtime has nothing to win.
 - `tfjs-node-gpu` is pinned to CUDA 11 (libtensorflow 2.9; effectively maintenance-mode), has no macOS support, and is Linux/CUDA-era tooling for a platform the app no longer ships.
-- Bit-rot evidence: `@tensorflow/tfjs-node` 4.22 crashes outright on Node ≥ 24 (`util.isNullOrUndefined` was removed from node:util); it only still works in this app because Electron 33 pins Node 20.
+- Bit-rot evidence: `@tensorflow/tfjs-node` 4.22 crashes outright on Node ≥ 24 (`util.isNullOrUndefined` was removed from node:util); it would have worked under the app's bundled runtime (Electron 41 ships Node 22), but not under a Node 24 dev shell — another reason it's gone.
 - Both remaining tfjs uses are trivial in plain TS: preprocess normalize + HWC→CHW (~150K elements, sub-ms — and can write straight into the batch buffer, which tfjs cannot) and batched cosine (`[N,512]·[512]`, microseconds). The old "manual loops are ~10× slower" note measured relative BLAS speed; the absolute cost is < 1 ms per video either way.
 - Payoff: 624 MB less in `node_modules` (measured), one less `electron-rebuild` in postinstall, one less asarUnpack native-module risk.
 
@@ -261,7 +264,7 @@ Revisit if any of these become true:
 ## Commands
 
 ```bash
-npm install           # install (native modules rebuild via electron-rebuild in postinstall)
+npm install           # install (postinstall runs scripts/rebuild-native.mjs → electron-rebuild for better-sqlite3)
 npm run dev           # Electron + Vite HMR
 npm run typecheck     # tsc --noEmit for both Node and Web TS projects
 npm run lint          # eslint
@@ -390,10 +393,13 @@ protocol.registerSchemesAsPrivileged([
 ])
 
 // Inside bootstrap(), after await app.whenReady():
-protocol.handle('local-file', (request) =>
-  net.fetch(`file://${request.url.slice('local-file://'.length)}`)
-)
+protocol.handle('local-file', (request) => {
+  const encoded = new URL(request.url).pathname.replace(/^\/+/, '')
+  return net.fetch(pathToFileURL(decodeURIComponent(encoded)).toString())
+})
 ```
+
+Percent-encode the path into one URL segment on the renderer side (`encodeURIComponent`) and decode + `pathToFileURL` on the main side — never interpolate a raw path, or Windows drive paths break (see "Local filesystem images in the renderer" above).
 
 Also add the scheme to the renderer's Content Security Policy `img-src` directive (use `Content-Security-Policy`, not the Firefox-only `X-Content-Security-Policy`).
 
@@ -411,5 +417,10 @@ Also add the scheme to the renderer's Content Security Policy `img-src` directiv
 - **No macOS auto-update on unsigned builds** — `updater.ts` skips the update check if `!app.isPackaged` and logs a notice. Do not treat a missing update prompt as a bug in dev.
 - **Partial file cleanup on cancel** — `runFfmpeg` now rejects (not resolves) when the signal is aborted. Callers delete the partial output before re-checking `signal.aborted`. Previously, cancelling a job left half-written files in `~/ffmpeg-output/`.
 - **Intel macs update from their own feed** — `updater.ts` sets `autoUpdater.channel = 'latest-x64'` on darwin/x64, so Intel installs fetch `latest-x64-mac.yml` (renamed from the Intel job's feed by the release workflow) while Apple Silicon uses the default `latest-mac.yml`. The two arches are deliberately not merged into one feed. If the channel name or the rename step ever drift apart, Intel auto-update breaks silently.
-- **`local-file://` exists because `file://` is blocked in dev** — the renderer runs on `http://localhost:5173` in dev; mixed-content rules block `file://` image loads. The custom protocol proxies through `net.fetch` and works in both dev and prod.
+- **`local-file://` exists because `file://` is blocked in dev** — the renderer runs on `http://localhost:5173` in dev; mixed-content rules block `file://` image loads. The custom protocol proxies through `net.fetch` and works in both dev and prod. The path is percent-encoded into one URL segment by `localFileUrl()` and decoded with `pathToFileURL` in the handler — a raw `local-file://${winPath}` silently fails on Windows (drive letter parsed as URL authority); it only ever worked on macOS.
+- **GPU detection PowerShell isn't `powershell.exe` on PATH** — `gpu.ts` invokes PowerShell to run `Get-CimInstance Win32_VideoController`, but `powershell.exe` (Windows PowerShell 5.1) is not always on PATH (some machines ship only PowerShell 7 `pwsh`). It tries candidates in order: the absolute `%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe` (present even when not on PATH), then `pwsh.exe`, then `powershell.exe`. Detection **failures are not cached** (and a previously cached failure is ignored), so a transient failure self-heals on the next launch / re-probe rather than sticking as `vendor: 'none'`.
 - **Cutting progress is 2-phased** — streaming extract+search (0–90%) and the ffmpeg stream-copy cut (90–100%). Extraction and similarity search overlap in a producer/consumer pipeline; a completed match window kills the extraction ffmpeg early, so the bar can jump to 90% well before the whole video is decoded. That jump is expected behavior, not a bug.
+- **`postinstall` goes through `scripts/rebuild-native.mjs`, not `electron-rebuild` directly** — Node 24+ Windows binaries are built with ClangCL, so node-gyp writes `clang:1` into `config.gypi` and Node's bundled `common.gypi` then forces `msbuild_toolset: ClangCL` on every native addon. Most dev machines only have the MSVC toolset (the "Desktop development with C++" workload), so a from-source build fails with `MSB8020: ClangCL … cannot be found`, and because `better-sqlite3` is an `optionalDependency` npm silently drops it (→ `Cannot find module 'better-sqlite3'`). The wrapper sets `npm_config_clang=0` on win32 only — node-gyp then writes `clang:0` and uses MSVC v142/v143. (`GYP_DEFINES=clang=0` does **not** work; it loses to the strong `clang:1`.) The wrapper also reinstalls `better-sqlite3` from source if npm dropped it, then runs `electron-rebuild`. It's a no-op on macOS.
+- **Electron is pinned at 41, not "latest"** — `better-sqlite3` 12.x ships prebuilt binaries only up to Electron 41 (ABI 145) and its C++ source does **not** compile against Electron 42's V8 headers (`v8::External::Value`/`New` signatures changed). Electron 41 is past the patched-CVE line (advisories were fixed in 40+), so it satisfies `npm audit`. Do **not** bump Electron past 41 until `better-sqlite3` adds support.
+- **`esbuild` is force-pinned via `overrides`** — Vite 7 (`^0.27`) and electron-vite 5 (`^0.25`) both request esbuild versions in a vulnerable range; the top-level `overrides: { "esbuild": "0.28.1" }` forces the patched build tree-wide so `npm audit` is clean. Vite stays at 7 (electron-vite 5 / `@vitejs/plugin-react` 4 don't support Vite 8 yet). Drop the override once those tools adopt esbuild ≥ 0.28.1 on their own.
+- **`tmp` is not a dependency** — it was removed (dead since the streaming pipe replaced the tmpdir extract path). `node_modules/tmp` may still exist transitively under `electron-builder`; that's its dependency, not ours — don't `import` it.

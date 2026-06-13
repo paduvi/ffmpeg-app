@@ -6,6 +6,7 @@ import type { CutMode, FileProgress, SampleImage, VideoFile } from '@shared/type
 import { VideoTable } from '../components/VideoTable'
 import { SampleImageTable } from '../components/SampleImageTable'
 import { ProgressModal } from '../components/ProgressModal'
+import { localFileUrl } from '../utils/localFile'
 
 export function Cutting() {
   const [files, setFiles] = useState<VideoFile[]>([])
@@ -178,7 +179,7 @@ export function Cutting() {
                   Selected sample
                 </Text>
                 <Image
-                  src={`local-file://${selectedSample.path}`}
+                  src={localFileUrl(selectedSample.path)}
                   w="100%"
                   mah={300}
                   fit="contain"

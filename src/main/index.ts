@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, protocol, net } from 'electron'
+import { pathToFileURL } from 'node:url'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import log from './logger'
 import store from './store'
@@ -38,12 +39,16 @@ app.on('second-instance', () => {
 async function bootstrap(): Promise<void> {
   electronApp.setAppUserModelId('com.chotoxautinh.dogympegapp')
 
-  // local-file://<absolute-path> → serves the file at that path.
-  // Enables <img src="local-file:///abs/path/to/image.png"> to work from
-  // both the http://localhost dev server and the file:// production page.
+  // local-file://<percent-encoded-absolute-path> → serves the file at that path.
+  // The renderer encodes the whole path with encodeURIComponent and places it in a
+  // single URL path segment (see App's local-file helper). This is required on Windows:
+  // a raw path like `local-file://C:\Users\…` would put the drive letter in the URL
+  // authority and Chromium would mangle the backslashes / drop the colon. Decoding a
+  // single encoded segment and rebuilding via pathToFileURL works on both platforms.
   protocol.handle('local-file', (request) => {
-    const filePath = request.url.slice('local-file://'.length)
-    return net.fetch(`file://${filePath}`)
+    const encoded = new URL(request.url).pathname.replace(/^\/+/, '')
+    const filePath = decodeURIComponent(encoded)
+    return net.fetch(pathToFileURL(filePath).toString())
   })
 
   app.on('browser-window-created', (_e, window) => {
