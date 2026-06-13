@@ -63,6 +63,7 @@ async function bootstrap(): Promise<void> {
   registerSamplesHandlers()
   registerGpuHandlers()
   ipcMain.handle('app:quit', () => app.quit())
+  ipcMain.handle('app:getVersion', () => app.getVersion())
   initUpdater()
 
   log.info(`Starting DogyMpegApp v${app.getVersion()}`)

@@ -17,6 +17,7 @@ declare global {
       app: {
         quit: () => Promise<void>
         checkForUpdates: () => Promise<void>
+        getVersion: () => Promise<string>
       }
       dialog: {
         openVideos: () => Promise<VideoFile[]>

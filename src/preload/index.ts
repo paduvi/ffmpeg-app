@@ -12,7 +12,8 @@ import type {
 const api = {
   app: {
     quit: (): Promise<void> => ipcRenderer.invoke('app:quit'),
-    checkForUpdates: (): Promise<void> => ipcRenderer.invoke('app:checkForUpdates')
+    checkForUpdates: (): Promise<void> => ipcRenderer.invoke('app:checkForUpdates'),
+    getVersion: (): Promise<string> => ipcRenderer.invoke('app:getVersion')
   },
 
   dialog: {
