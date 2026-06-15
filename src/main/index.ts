@@ -37,6 +37,10 @@ app.on('second-instance', () => {
 })
 
 async function bootstrap(): Promise<void> {
+  // Create splash window as early as possible so it loads and displays
+  // while the main process registers handlers, loads settings, and initializes services.
+  const splash = createSplashWindow()
+
   electronApp.setAppUserModelId('com.chotoxautinh.dogympegapp')
 
   // local-file://<percent-encoded-absolute-path> → serves the file at that path.
@@ -72,7 +76,6 @@ async function bootstrap(): Promise<void> {
   // Force settings to initialise (reads/writes prefs file)
   log.info(`Settings loaded: preset=${store.get('preset')}, crf=${store.get('crf')}`)
 
-  const splash = createSplashWindow()
   await initServices()
 
   const mainWin = createMainWindow()

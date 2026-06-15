@@ -50,14 +50,21 @@ async function listEncoders(binary: string): Promise<Set<string>> {
 
 /**
  * A listed encoder is not necessarily usable — drivers and hardware gate it at
- * runtime. Validate with a real 1-frame encode to a null sink.
+ * runtime. Validate with a short real encode to a null sink.
+ *
+ * The clip is deliberately representative rather than minimal: a 720p, yuv420p,
+ * multi-frame source. A 1-frame 256×256 rgb test can spuriously fail hardware
+ * encoders whose session init has minimum-size / pixel-format / frame-count
+ * quirks (observed on Intel UHD VideoToolbox), making the probe under-report a
+ * GPU encoder that works fine on real footage.
  */
 async function testEncode(binary: string, encoder: VideoEncoder): Promise<boolean> {
   const { code } = await runFfmpegCapture(
     binary,
     [
       '-hide_banner', '-loglevel', 'error',
-      '-f', 'lavfi', '-i', 'testsrc=size=256x256:rate=10:duration=0.1',
+      '-f', 'lavfi', '-i', 'testsrc=size=1280x720:rate=30:duration=0.5',
+      '-pix_fmt', 'yuv420p',
       '-c:v', encoder,
       '-f', 'null', '-'
     ],
