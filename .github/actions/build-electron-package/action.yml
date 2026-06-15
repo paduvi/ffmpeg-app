@@ -42,6 +42,35 @@ runs:
       shell: bash
       run: npx electron-builder ${{ inputs.eb-args }} --publish never
 
+    # Guard against shipping wrong-arch native modules: ffmpeg-static,
+    # onnxruntime-node, and sharp ship prebuilt host-arch binaries, so packaging
+    # an x64 app on an arm64 host (or vice-versa) yields an installer that
+    # crashes on launch ("Cannot find module .../darwin/x64/onnxruntime_binding.node").
+    # Each arch must be built on its own native runner; this asserts it before upload.
+    - name: Verify packaged native binaries match target arch (macOS)
+      if: contains(inputs.eb-args, '--mac')
+      shell: bash
+      run: |
+        set -uo pipefail
+        if [[ "${{ inputs.eb-args }}" == *"--x64"* ]]; then ARCH=x64; MACHO=x86_64; OUT=release/mac; else ARCH=arm64; MACHO=arm64; OUT=release/mac-arm64; fi
+        UNP="$OUT/DogyMpegApp.app/Contents/Resources/app.asar.unpacked/node_modules"
+        echo "Verifying darwin/$ARCH ($MACHO) native binaries under $UNP"
+        fail=0
+        check_macho() { # <path> <label>
+          if [[ ! -f "$1" ]]; then echo "::error::missing $2: $1"; fail=1; return; fi
+          local a; a=$(lipo -archs "$1" 2>/dev/null || true)
+          echo "  $2: $a"
+          [[ "$a" == *"$MACHO"* ]] || { echo "::error::$2 is not $MACHO (got: $a)"; fail=1; }
+        }
+        check_macho "$UNP/onnxruntime-node/bin/napi-v6/darwin/$ARCH/onnxruntime_binding.node" "onnxruntime-node"
+        check_macho "$UNP/@img/sharp-darwin-$ARCH/lib/sharp-darwin-$ARCH.node" "sharp"
+        check_macho "$UNP/ffmpeg-static/ffmpeg" "ffmpeg-static"
+        if [[ $fail -ne 0 ]]; then
+          echo "::error::Packaged app has wrong-arch native modules for darwin/$ARCH — refusing to upload a build that would crash on launch."
+          exit 1
+        fi
+        echo "OK: all native binaries are darwin/$ARCH"
+
     # latest*.yml are the electron-updater feeds; .blockmap enables
     # differential downloads. Both must reach the GitHub Release.
     # Single-level globs only: release/** would sweep the win-unpacked/ and

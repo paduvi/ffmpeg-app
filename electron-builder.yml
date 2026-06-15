@@ -21,6 +21,9 @@ extraResources:
 asarUnpack:
   - '**/node_modules/ffmpeg-static/**'
   - '**/node_modules/sharp/**'
+  # sharp v0.33 keeps its native binary + libvips in separate @img/* packages,
+  # not under sharp/ — unpack them explicitly (don't rely on smart-unpack).
+  - '**/node_modules/@img/**'
   - '**/node_modules/onnxruntime-node/**'
   - '**/node_modules/better-sqlite3/**'
 # Arch is selected per CI job via CLI flags (--arm64 / --x64) — never list
