@@ -148,10 +148,7 @@ function cuttingSeconds(
  * Probe each path and attach a processing-time estimate for `task`.
  * Never throws: an unprobeable file yields nulls and the UI shows "—".
  */
-export async function analyzeVideos(
-  paths: string[],
-  task: EstimateTask
-): Promise<VideoAnalysis[]> {
+export async function analyzeVideos(paths: string[], task: EstimateTask): Promise<VideoAnalysis[]> {
   const preset = store.get('preset')
   // Only the compression estimate depends on the encoder, and resolving it is
   // cached after the first probe — but skip it entirely for cutting.

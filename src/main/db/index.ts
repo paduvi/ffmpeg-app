@@ -46,9 +46,7 @@ function seedDefaultSamples(db: Database.Database): void {
 
   const defaults = [{ name: 'Sample', file: 'sample.png' }]
 
-  const insert = db.prepare(
-    'INSERT INTO sample_images (name, path, is_permanent) VALUES (?, ?, 1)'
-  )
+  const insert = db.prepare('INSERT INTO sample_images (name, path, is_permanent) VALUES (?, ?, 1)')
   for (const { name, file } of defaults) {
     insert.run(name, join(sampleDir, file))
     log.info(`Seeded default sample image: ${name}`)

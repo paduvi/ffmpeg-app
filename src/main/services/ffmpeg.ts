@@ -65,7 +65,9 @@ export function runFfmpeg(
     const onAbort = (): void => {
       proc.kill('SIGTERM')
       // Force-kill if SIGTERM is not honoured within 3 s
-      setTimeout(() => { if (!proc.killed) proc.kill('SIGKILL') }, 3000)
+      setTimeout(() => {
+        if (!proc.killed) proc.kill('SIGKILL')
+      }, 3000)
     }
     signal.addEventListener('abort', onAbort, { once: true })
 

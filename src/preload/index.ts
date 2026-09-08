@@ -24,7 +24,6 @@ const api = {
     openImage: (): Promise<string | null> => ipcRenderer.invoke('dialog:openImage'),
     openFile: (filters?: Electron.FileFilter[]): Promise<string | null> =>
       ipcRenderer.invoke('dialog:openFile', filters),
-    openFolder: (): Promise<string | null> => ipcRenderer.invoke('dialog:openFolder'),
     showItemInFolder: (fullPath: string): Promise<void> =>
       ipcRenderer.invoke('dialog:showItemInFolder', fullPath)
   },

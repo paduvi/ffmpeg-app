@@ -1,4 +1,13 @@
-import { AppShell, Burger, Group, Menu, NavLink, Title, UnstyledButton, useMantineColorScheme } from '@mantine/core'
+import {
+  AppShell,
+  Burger,
+  Group,
+  Menu,
+  NavLink,
+  Title,
+  UnstyledButton,
+  useMantineColorScheme
+} from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useState } from 'react'
 import {
@@ -46,7 +55,12 @@ export default function App() {
           <Group h="100%" px="md" justify="space-between">
             <Group>
               <Burger opened={navOpened} onClick={toggleNav} hiddenFrom="sm" size="sm" />
-              <img src="./icon.png" width={32} height={32} style={{ borderRadius: 6, display: 'block' }} />
+              <img
+                src="./icon.png"
+                width={32}
+                height={32}
+                style={{ borderRadius: 6, display: 'block' }}
+              />
               <Title order={4}>DogyMpegApp</Title>
             </Group>
 

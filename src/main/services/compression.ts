@@ -1,8 +1,9 @@
-import { cpus, homedir } from 'node:os'
+import { cpus } from 'node:os'
 import { join, basename, extname, dirname } from 'node:path'
-import { mkdirSync, unlinkSync, existsSync, statSync } from 'node:fs'
+import { unlinkSync, existsSync, statSync } from 'node:fs'
 import pLimit from 'p-limit'
 import { runFfmpeg } from './ffmpeg'
+import { makeOutputDir } from './outputDir'
 import { resolveVideoEncoder, buildVideoArgs, GPU_ENCODE_CONCURRENCY } from './encoders'
 import { probeVideo, type VideoMeta } from './probe'
 import { recordThroughput } from './estimate'
@@ -47,20 +48,6 @@ function sizeOf(path: string): number | undefined {
   } catch {
     return undefined
   }
-}
-
-function makeOutputDir(): string {
-  const now = new Date()
-  const ts =
-    String(now.getFullYear()) +
-    String(now.getMonth() + 1).padStart(2, '0') +
-    String(now.getDate()).padStart(2, '0') +
-    String(now.getHours()).padStart(2, '0') +
-    String(now.getMinutes()).padStart(2, '0') +
-    String(now.getSeconds()).padStart(2, '0')
-  const dir = join(homedir(), 'ffmpeg-output', ts)
-  mkdirSync(dir, { recursive: true })
-  return dir
 }
 
 export async function compressVideos(
@@ -124,10 +111,13 @@ export async function compressVideos(
       const encodeWith = async (enc: VideoEncoder, useHwaccel: boolean): Promise<void> => {
         const args = [
           ...(useHwaccel ? ['-hwaccel', 'auto'] : []),
-          '-i', job.input,
+          '-i',
+          job.input,
           ...buildVideoArgs(enc, preset, crf, videoCapBps),
-          '-c:a', audioCodec,
-          '-y', outputs[i]
+          '-c:a',
+          audioCodec,
+          '-y',
+          outputs[i]
         ]
         await runFfmpeg(
           args,
@@ -148,7 +138,11 @@ export async function compressVideos(
           // fully in software (libx264, no hwaccel) before giving up.
           if (signal.aborted) throw err
           if (existsSync(outputs[i])) {
-            try { unlinkSync(outputs[i]) } catch { /* ignore */ }
+            try {
+              unlinkSync(outputs[i])
+            } catch {
+              /* ignore */
+            }
           }
           log.warn(
             `${encoder} (+hwaccel) failed for ${job.input}; retrying in software: ${err instanceof Error ? err.message : String(err)}`
@@ -204,7 +198,11 @@ export async function compressVideos(
       } catch (err) {
         // Delete the partial output file so cancelled/failed files don't litter the output dir
         if (outputs[i] && existsSync(outputs[i])) {
-          try { unlinkSync(outputs[i]) } catch { /* ignore */ }
+          try {
+            unlinkSync(outputs[i])
+          } catch {
+            /* ignore */
+          }
         }
         perFile[i] = { ...perFile[i], active: false }
         onProgress([...perFile])
@@ -215,9 +213,7 @@ export async function compressVideos(
 
   await Promise.all(tasks)
 
-  const resolvedOutputDir = outputs.find(Boolean)
-    ? dirname(outputs.find(Boolean)!)
-    : outputDir
+  const resolvedOutputDir = outputs.find(Boolean) ? dirname(outputs.find(Boolean)!) : outputDir
 
   return { outputs, outputDir: resolvedOutputDir }
 }

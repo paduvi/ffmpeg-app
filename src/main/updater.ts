@@ -25,7 +25,9 @@ function releasesPageUrl(): string | null {
     const repo = /^repo:\s*(\S+)/m.exec(cfg)?.[1]
     if (owner && repo) return `https://github.com/${owner}/${repo}/releases/latest`
   } catch (err) {
-    log.warn(`Could not read app-update.yml for releases URL: ${err instanceof Error ? err.message : String(err)}`)
+    log.warn(
+      `Could not read app-update.yml for releases URL: ${err instanceof Error ? err.message : String(err)}`
+    )
   }
   return null
 }

@@ -94,14 +94,10 @@ export function ProgressModal({ opened, jobId, feature, initialFiles, onCancel, 
       offProgress()
       offDone()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opened, jobId, feature]) // intentionally exclude initialFiles — it seeds once on open
 
-  const title = finished
-    ? 'Done!'
-    : feature === 'compression'
-      ? 'Compressing…'
-      : 'Processing…'
+  const title = finished ? 'Done!' : feature === 'compression' ? 'Compressing…' : 'Processing…'
 
   return (
     <Modal
@@ -132,43 +128,45 @@ export function ProgressModal({ opened, jobId, feature, initialFiles, onCancel, 
                 }
               }
               return (
-              <Box key={i}>
-                <Group justify="space-between" mb={4} gap="xs" wrap="nowrap">
-                  <Text size="sm" truncate title={fp.name} style={{ flex: 1, minWidth: 0 }}>
-                    {fp.name}
-                  </Text>
-                  {fp.done ? (
-                    <Group gap={4} style={{ flexShrink: 0 }} wrap="nowrap">
-                      <IconCheck size={14} color="var(--mantine-color-green-6)" />
-                      <Text size="xs" c="green">Done</Text>
-                      {(() => {
-                        const change = formatSizeChange(fp)
-                        return change ? (
-                          <Text size="xs" c={change.grew ? 'orange' : 'dimmed'}>
-                            · {change.label}
-                          </Text>
-                        ) : null
-                      })()}
-                    </Group>
-                  ) : (
-                    <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
-                      {fp.active && fp.value === 0
-                        ? 'Preparing…'
-                        : eta
-                          ? `${Math.round(fp.value * 100)}% · ~${eta} left`
-                          : `${Math.round(fp.value * 100)}%`}
+                <Box key={i}>
+                  <Group justify="space-between" mb={4} gap="xs" wrap="nowrap">
+                    <Text size="sm" truncate title={fp.name} style={{ flex: 1, minWidth: 0 }}>
+                      {fp.name}
                     </Text>
-                  )}
-                </Group>
-                <Progress
-                  value={fp.done ? 100 : fp.active ? Math.max(fp.value * 100, 2) : 0}
-                  color={fp.done ? 'green' : undefined}
-                  animated={fp.active && !fp.done}
-                  striped={fp.active && fp.value < 0.02 && !fp.done}
-                  size="sm"
-                  radius="xl"
-                />
-              </Box>
+                    {fp.done ? (
+                      <Group gap={4} style={{ flexShrink: 0 }} wrap="nowrap">
+                        <IconCheck size={14} color="var(--mantine-color-green-6)" />
+                        <Text size="xs" c="green">
+                          Done
+                        </Text>
+                        {(() => {
+                          const change = formatSizeChange(fp)
+                          return change ? (
+                            <Text size="xs" c={change.grew ? 'orange' : 'dimmed'}>
+                              · {change.label}
+                            </Text>
+                          ) : null
+                        })()}
+                      </Group>
+                    ) : (
+                      <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
+                        {fp.active && fp.value === 0
+                          ? 'Preparing…'
+                          : eta
+                            ? `${Math.round(fp.value * 100)}% · ~${eta} left`
+                            : `${Math.round(fp.value * 100)}%`}
+                      </Text>
+                    )}
+                  </Group>
+                  <Progress
+                    value={fp.done ? 100 : fp.active ? Math.max(fp.value * 100, 2) : 0}
+                    color={fp.done ? 'green' : undefined}
+                    animated={fp.active && !fp.done}
+                    striped={fp.active && fp.value < 0.02 && !fp.done}
+                    size="sm"
+                    radius="xl"
+                  />
+                </Box>
               )
             })}
 

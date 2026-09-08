@@ -26,7 +26,6 @@ declare global {
         openVideos: () => Promise<VideoFile[]>
         openImage: () => Promise<string | null>
         openFile: (filters?: Electron.FileFilter[]) => Promise<string | null>
-        openFolder: () => Promise<string | null>
         showItemInFolder: (fullPath: string) => Promise<void>
       }
       settings: {

@@ -62,11 +62,20 @@ async function testEncode(binary: string, encoder: VideoEncoder): Promise<boolea
   const { code } = await runFfmpegCapture(
     binary,
     [
-      '-hide_banner', '-loglevel', 'error',
-      '-f', 'lavfi', '-i', 'testsrc=size=1280x720:rate=30:duration=0.5',
-      '-pix_fmt', 'yuv420p',
-      '-c:v', encoder,
-      '-f', 'null', '-'
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-f',
+      'lavfi',
+      '-i',
+      'testsrc=size=1280x720:rate=30:duration=0.5',
+      '-pix_fmt',
+      'yuv420p',
+      '-c:v',
+      encoder,
+      '-f',
+      'null',
+      '-'
     ],
     20000
   )
@@ -178,27 +187,48 @@ export function buildVideoArgs(
     }
     case 'h264_nvenc':
       return [
-        '-c:v', 'h264_nvenc',
-        '-preset', NVENC_PRESET[preset] ?? 'p4',
-        '-rc', 'vbr', '-cq', String(crf), '-b:v', '0'
+        '-c:v',
+        'h264_nvenc',
+        '-preset',
+        NVENC_PRESET[preset] ?? 'p4',
+        '-rc',
+        'vbr',
+        '-cq',
+        String(crf),
+        '-b:v',
+        '0'
       ]
     case 'h264_qsv':
       return ['-c:v', 'h264_qsv', '-preset', preset, '-global_quality', String(crf)]
     case 'h264_amf':
       return [
-        '-c:v', 'h264_amf',
-        '-quality', AMF_QUALITY[preset] ?? 'balanced',
-        '-rc', 'cqp', '-qp_i', String(crf), '-qp_p', String(crf)
+        '-c:v',
+        'h264_amf',
+        '-quality',
+        AMF_QUALITY[preset] ?? 'balanced',
+        '-rc',
+        'cqp',
+        '-qp_i',
+        String(crf),
+        '-qp_p',
+        String(crf)
       ]
     case 'libx264':
       return [
-        '-c:v', 'libx264', '-preset', preset, '-crf', String(crf),
+        '-c:v',
+        'libx264',
+        '-preset',
+        preset,
+        '-crf',
+        String(crf),
         // bufsize = 2× maxrate: a VBV window of ~2 s, tight enough to hold the
         // average down without starving individual high-motion scenes.
         ...(maxBitrateBps && maxBitrateBps > 0
           ? [
-              '-maxrate', String(Math.round(maxBitrateBps)),
-              '-bufsize', String(Math.round(maxBitrateBps * 2))
+              '-maxrate',
+              String(Math.round(maxBitrateBps)),
+              '-bufsize',
+              String(Math.round(maxBitrateBps * 2))
             ]
           : [])
       ]

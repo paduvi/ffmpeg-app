@@ -277,8 +277,8 @@ export function SettingsDialog({ opened, onClose }: Props) {
                 </Button>
               </Group>
               <Text size="xs" c="dimmed">
-                Hardware acceleration is used automatically when available, falling back to the
-                CPU if it cannot handle a file.
+                Hardware acceleration is used automatically when available, falling back to the CPU
+                if it cannot handle a file.
               </Text>
             </Stack>
           ) : (

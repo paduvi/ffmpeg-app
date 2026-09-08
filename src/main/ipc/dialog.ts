@@ -18,11 +18,13 @@ export function registerDialogHandlers(): void {
       properties: ['openFile', 'multiSelections']
     })
     if (canceled) return []
-    return filePaths.map((p): VideoFile => ({
-      path: p,
-      name: basename(p),
-      size: statSync(p).size
-    }))
+    return filePaths.map(
+      (p): VideoFile => ({
+        path: p,
+        name: basename(p),
+        size: statSync(p).size
+      })
+    )
   })
 
   ipcMain.handle('dialog:openImage', async (event) => {
@@ -44,15 +46,6 @@ export function registerDialogHandlers(): void {
       title: 'Select File',
       filters: filters ?? [{ name: 'All Files', extensions: ['*'] }],
       properties: ['openFile']
-    })
-    return canceled ? null : filePaths[0]
-  })
-
-  ipcMain.handle('dialog:openFolder', async (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    const { canceled, filePaths } = await dialog.showOpenDialog(win!, {
-      title: 'Select Folder',
-      properties: ['openDirectory', 'createDirectory']
     })
     return canceled ? null : filePaths[0]
   })

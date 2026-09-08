@@ -12,7 +12,10 @@ export function AboutDialog({ opened, onClose }: Props) {
   const [version, setVersion] = useState<string | null>(null)
 
   useEffect(() => {
-    window.api.app.getVersion().then(setVersion).catch(() => setVersion(null))
+    window.api.app
+      .getVersion()
+      .then(setVersion)
+      .catch(() => setVersion(null))
   }, [])
 
   return (
@@ -26,8 +29,8 @@ export function AboutDialog({ opened, onClose }: Props) {
           Dogy Inc.
         </Text>
         <Text size="sm" ta="center" mt="xs">
-          Desktop video utility for batch compression and intelligent video cutting powered by FFmpeg
-          and ResNet18 similarity matching.
+          Desktop video utility for batch compression and intelligent video cutting powered by
+          FFmpeg and ResNet18 similarity matching.
         </Text>
         <Group mt="md">
           <Button onClick={onClose}>Close</Button>

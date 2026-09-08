@@ -80,7 +80,7 @@ class AsyncQueue<T> implements AsyncIterable<T> {
         : Promise.resolve({ value: undefined as never, done: true })
     }
     return new Promise((resolve, reject) => this.waiters.push({ resolve, reject }))
-  }
+  };
 
   [Symbol.asyncIterator](): AsyncIterator<T> {
     return { next: this.next }
@@ -114,12 +114,18 @@ export function streamFrames(
     // Keyframe mode: the decoder skips every non-I frame, so only one frame
     // per GOP is ever decoded; in this mode all surviving frames are sampled.
     ...(sampling === 'keyframes' ? ['-skip_frame', 'nokey'] : []),
-    '-i', videoPath,
-    '-an', '-sn',
-    '-vf', filters,
-    '-vsync', 'vfr',
-    '-f', 'rawvideo',
-    '-pix_fmt', 'rgb24',
+    '-i',
+    videoPath,
+    '-an',
+    '-sn',
+    '-vf',
+    filters,
+    '-vsync',
+    'vfr',
+    '-f',
+    'rawvideo',
+    '-pix_fmt',
+    'rgb24',
     'pipe:1'
   ]
   log.debug(`frame stream: ffmpeg ${args.join(' ')}`)

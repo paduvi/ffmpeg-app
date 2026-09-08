@@ -83,7 +83,14 @@ export function Compression() {
           Remove
         </Button>
         <Button
-          leftSection={<img src="./img/convert-icon.png" width={20} height={20} style={{ objectFit: 'contain' }} />}
+          leftSection={
+            <img
+              src="./img/convert-icon.png"
+              width={20}
+              height={20}
+              style={{ objectFit: 'contain' }}
+            />
+          }
           disabled={!hasSelection}
           onClick={convert}
         >

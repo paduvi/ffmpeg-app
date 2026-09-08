@@ -1,9 +1,9 @@
 import { join, basename, extname } from 'node:path'
 import type { CutJob, CutMode, FileProgress } from '../../shared/types'
-import { mkdirSync, unlinkSync, existsSync } from 'node:fs'
-import { homedir } from 'node:os'
+import { unlinkSync, existsSync } from 'node:fs'
 import pLimit from 'p-limit'
 import { runFfmpeg } from './ffmpeg'
+import { makeOutputDir } from './outputDir'
 import { streamFrames, type FrameSampling } from './frames'
 import { probeVideo } from './probe'
 import { recordThroughput } from './estimate'
@@ -29,20 +29,6 @@ const CUT_CONCURRENCY = 4
 //   ffmpeg cut                0.90 → 1.00
 // Trim mode skips the search entirely, so its cut phase starts at 0 instead.
 const STREAM_END = 0.9
-
-function makeOutputDir(): string {
-  const now = new Date()
-  const ts =
-    String(now.getFullYear()) +
-    String(now.getMonth() + 1).padStart(2, '0') +
-    String(now.getDate()).padStart(2, '0') +
-    String(now.getHours()).padStart(2, '0') +
-    String(now.getMinutes()).padStart(2, '0') +
-    String(now.getSeconds()).padStart(2, '0')
-  const dir = join(homedir(), 'ffmpeg-output', ts)
-  mkdirSync(dir, { recursive: true })
-  return dir
-}
 
 export type CuttingResult = { outputs: string[]; outputDir: string }
 
@@ -264,9 +250,7 @@ export async function cutVideos(
       // The ML search may push the start later; it can never pull it earlier
       // than the user's trim start, and the trim end always wins.
       let startSec =
-        cutMode === 'trim'
-          ? trimStartSec
-          : Math.max(await searchCutSeconds(), trimStartSec)
+        cutMode === 'trim' ? trimStartSec : Math.max(await searchCutSeconds(), trimStartSec)
       const endSec = trimEndSec
       // A match right at the end of the window would leave nothing to write.
       // Keeping the user's window beats emitting a zero-length file.
@@ -297,13 +281,17 @@ export async function cutVideos(
         try {
           await runFfmpeg(
             [
-              '-ss', String(startSec),
-              '-i', input,
+              '-ss',
+              String(startSec),
+              '-i',
+              input,
               // `-t` (output duration) rather than `-to`: with `-ss` before the
               // input, `-to` has meant different things across ffmpeg versions.
               ...(endSec !== null ? ['-t', String(endSec - startSec)] : []),
-              '-c', 'copy',
-              '-y', output
+              '-c',
+              'copy',
+              '-y',
+              output
             ],
             (value) => {
               perFile[i] = {

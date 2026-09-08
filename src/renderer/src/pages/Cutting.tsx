@@ -2,7 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { Button, Group, Stack, Text, TextInput, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { IconPlus, IconScissors, IconTrash } from '@tabler/icons-react'
-import type { CutJob, CutMode, FileProgress, SampleImage, TrimRange, VideoFile } from '@shared/types'
+import type {
+  CutJob,
+  CutMode,
+  FileProgress,
+  SampleImage,
+  TrimRange,
+  VideoFile
+} from '@shared/types'
 import { VideoTable, trimFieldError, type TrimText } from '../components/VideoTable'
 import { SampleStepModal, type MatchMode } from '../components/SampleStepModal'
 import { ProgressModal } from '../components/ProgressModal'
@@ -60,7 +67,11 @@ export function Cutting() {
   const addSample = async (): Promise<void> => {
     const path = await window.api.dialog.openImage()
     if (!path) return
-    const name = path.split('/').pop()?.replace(/\.[^.]+$/, '') ?? 'sample'
+    const name =
+      path
+        .split('/')
+        .pop()
+        ?.replace(/\.[^.]+$/, '') ?? 'sample'
     const record = await window.api.samples.insert(name, path)
     setSamples((prev) => [...prev, record])
     selectSample(record.id)

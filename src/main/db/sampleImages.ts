@@ -23,14 +23,12 @@ export function insertSampleImage(name: string, path: string, isPermanent = fals
 }
 
 export function deleteSampleImage(id: number): void {
-  openDb()
-    .prepare('DELETE FROM sample_images WHERE id = ? AND is_permanent = 0')
-    .run(id)
+  openDb().prepare('DELETE FROM sample_images WHERE id = ? AND is_permanent = 0').run(id)
 }
 
 export function getSampleImage(id: number): SampleImage | undefined {
-  const row = openDb()
-    .prepare('SELECT * FROM sample_images WHERE id = ?')
-    .get(id) as Row | undefined
+  const row = openDb().prepare('SELECT * FROM sample_images WHERE id = ?').get(id) as
+    | Row
+    | undefined
   return row ? toModel(row) : undefined
 }

@@ -52,7 +52,8 @@ export function SampleStepModal({
       <Stack gap="md">
         <Text size="sm" c="dimmed">
           Optional. Pick a sample image and {noun} will be cut at the frame that matches it. Each
-          video&rsquo;s own trim window applies either way — skip this step to trim and nothing else.
+          video&rsquo;s own trim window applies either way — skip this step to trim and nothing
+          else.
         </Text>
 
         <Group justify="space-between" align="center">

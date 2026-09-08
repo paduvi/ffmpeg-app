@@ -69,7 +69,7 @@ export type SampleImage = {
 
 export type FileProgress = {
   name: string
-  value: number   // 0–1
+  value: number // 0–1
   done: boolean
   active: boolean // currently being processed (shows animation even at 0%)
   /**

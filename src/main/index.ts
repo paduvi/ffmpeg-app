@@ -20,7 +20,10 @@ import { initUpdater } from './updater'
 // images from the local filesystem without triggering mixed-content or
 // same-origin blocks.
 protocol.registerSchemesAsPrivileged([
-  { scheme: 'local-file', privileges: { secure: true, supportFetchAPI: false, bypassCSP: false, stream: true } }
+  {
+    scheme: 'local-file',
+    privileges: { secure: true, supportFetchAPI: false, bypassCSP: false, stream: true }
+  }
 ])
 
 // Single-instance lock
@@ -97,10 +100,7 @@ async function bootstrap(): Promise<void> {
 async function initServices(): Promise<void> {
   try {
     openDb()
-    await Promise.all([
-      initOnnxSession(),
-      new Promise<void>((r) => setTimeout(r, 1000))
-    ])
+    await Promise.all([initOnnxSession(), new Promise<void>((r) => setTimeout(r, 1000))])
     log.info('All services initialised')
   } catch (err) {
     log.error('Service init failed', err)
@@ -108,10 +108,13 @@ async function initServices(): Promise<void> {
   }
 }
 
-app.whenReady().then(bootstrap).catch((err) => {
-  log.error('Fatal startup error', err)
-  app.quit()
-})
+app
+  .whenReady()
+  .then(bootstrap)
+  .catch((err) => {
+    log.error('Fatal startup error', err)
+    app.quit()
+  })
 
 app.on('window-all-closed', () => {
   app.quit()
