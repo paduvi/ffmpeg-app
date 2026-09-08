@@ -21,10 +21,10 @@ Migrated from JavaFX (Java 21); the Java history lives in git but the working tr
 
 ## Layout
 
-- `src/main/` — Electron main process. `index.ts` is the entry. `services/` holds ffmpeg/onnx/similarity/frames/preprocess/cutting/compression/gpu/encoders/notify. `ipc/` holds channel handlers, one file per feature. `db/` is the SQLite layer. `store.ts` is electron-store. `updater.ts` wires `electron-updater`.
+- `src/main/` — Electron main process. `index.ts` is the entry. `services/` holds ffmpeg/onnx/similarity/frames/preprocess/cutting/compression/gpu/encoders/probe/sizeProbe/estimate/notify. `ipc/` holds channel handlers, one file per feature. `db/` is the SQLite layer. `store.ts` is electron-store. `updater.ts` wires `electron-updater`.
 - `src/preload/index.ts` — sole preload script. Exposes a typed `window.api` via `contextBridge.exposeInMainWorld`. All renderer↔main calls go through it; renderer never touches `ipcRenderer` directly.
 - `src/preload/index.d.ts` — ambient types for `window.api`. Keep in sync with `index.ts`.
-- `src/renderer/src/` — React app. `pages/` = top-level sections (Compression, Cutting). `components/` = reusable (VideoTable, ProgressModal, SettingsDialog, SampleImageTable, AboutDialog). `utils/` = renderer helpers (e.g. `localFile.ts`). No Node access; everything through `window.api`.
+- `src/renderer/src/` — React app. `pages/` = top-level sections (Compression, Cutting). `components/` = reusable (VideoTable, ProgressModal, SettingsDialog, SampleImageTable, SampleStepModal, AboutDialog). `hooks/` = shared renderer hooks (`useVideoAnalyses`). `utils/` = renderer helpers (`localFile.ts`, `time.ts`). No Node access; everything through `window.api`.
 - `src/renderer/public/` — static files served at the renderer root. Contains `splash.gif` and `icon.png` (in-app header logo), copied from `resources/` — keep them in sync.
 - `src/shared/types.ts` — types shared between main, preload, and renderer. Add all cross-boundary DTOs and enums here.
 - `resources/` — packaged static assets. `models/resnet18_identity.onnx`, `icon.{icns,ico,png}`, `img/` (JavaFX-era icons used as buttons), `sample-images/` (permanent built-in samples seeded to SQLite on first launch).
@@ -71,6 +71,47 @@ The remaining-time label in `ProgressModal` is derived renderer-side from `value
 
 **Race condition prevention (`initialFiles` prop)**: The main process starts work before the renderer's `useEffect` has registered its IPC listener. Pass `initialFiles: FileProgress[]` to `ProgressModal` so it seeds the rows immediately from a pre-built array (constructed in the page component _before_ calling `start()`). The effect only re-runs on `[opened, jobId, feature]` changes — `initialFiles` is intentionally excluded from the deps array with an `eslint-disable-next-line react-hooks/exhaustive-deps` comment.
 
+### Duration probing and time estimates
+
+Both tabs show a **Length** and an **Est. time** column, filled in as soon as videos are added. One IPC round trip (`media:analyze`) does both:
+
+- **`probe.ts`** reads duration / resolution / fps by parsing the banner `ffmpeg -i <file>` writes to stderr. `ffprobe` is **not** shipped by `ffmpeg-static`, so there is no JSON path; ffmpeg then exits non-zero ("At least one output file must be specified") — expected, not an error. Results are cached per `path + mtime + size` for the process lifetime, so `cutting.ts` / `compression.ts` re-probing the same file mid-job costs nothing.
+- **`estimate.ts`** turns duration into a wall-clock estimate. Estimates are a **speed** — seconds of source video per second of wall clock, normalised to 1080p — so a 4K file at the same speed takes 4× as long. Cold-start speeds are per-encoder (`ENCODER_SPEED`) and, for libx264, per-preset (`PRESET_SPEED`); cutting uses `SEARCH_SPEED` + `COPY_SPEED` plus fixed process-startup overheads.
+- **The estimate learns.** Every finished file calls `recordThroughput()`, which folds the observed speed into an EMA in `store.get('throughput')` keyed by encoder/preset or cut mode. Once a key has a measurement it replaces the cold-start guess. Runs under 5 s of source or 1 s of wall time are ignored — they are all startup overhead and would poison the average.
+- The renderer side is `useVideoAnalyses(files, task)`. It re-probes when the file list *or* the task changes (switching cut mode changes the estimate). `files`/`task` are fresh objects every render, so the effect deps are their JSON serialisations — **JSON, not a delimiter join**: paths routinely contain spaces.
+- **Compression does not predict output size.** A measured pre-estimate existed (test-encoding samples to `-f null -`) and was removed: it cost seconds per file and duplicated a number the user gets for real moments later. The Size column shows the input size alone, and the **progress modal reports the actual change per file once it finishes** (`Done · −62%`), from `inputBytes`/`outputBytes` on `FileProgress`. A file that grew is shown in orange rather than hidden — it is the case most worth noticing. Only main knows those bytes; unlike the ETA they cannot be derived renderer-side from `value`.
+- **Cutting still shows `→ ~size`** in the Size column, because a stream copy's size follows directly from the trim window (`outputBytesFor` in `Cutting.tsx`). It is suppressed while a row still spans the whole video.
+- **Do not reintroduce a bits-per-pixel size heuristic.** One was tried and removed: at a fixed CRF, output absolute bits-per-pixel varies **~40×** with content complexity, so no model seeing only resolution and CRF can be right.
+- Estimates are decoration: every failure path degrades to `null` → "—" in the table. Never let a probe failure block a job.
+
+### Quality is presented in words, not CRF
+
+`SettingsDialog` exposes CRF only as a slider over **18–28** with a plain-language name (`describeQuality`): Near-original / High / Balanced / Compact / Smallest, plus the raw `CRF n` kept small and dimmed for anyone who knows what it means. The full 0–51 range was worse than useless — below 18 files balloon for a difference nobody can see, above 28 the picture visibly falls apart, so the extra range only invited disappointing choices.
+
+- The stored value is **clamped to the range when the dialog opens and saves**, so a value written before the range narrowed doesn't sit off the slider. It is deliberately *not* clamped in `compression.ts`: an out-of-range value in the prefs file keeps working until the user next saves Settings.
+- **Anything a `Slider` centres on an end position escapes the modal.** Two separate bugs came from this, both now avoided:
+  - *Mark labels* at the ends hang half outside the track and force the whole modal to scroll sideways. The ends are captioned in ordinary text underneath instead; the only mark is an unlabelled tick at the recommended 23.
+  - *The drag tooltip* (`label`) is centred on the thumb, so at CRF 18 it started 18 px outside the modal and was clipped by the modal's `overflow: auto` — which is needed for vertical scrolling and cannot simply be turned off. It is disabled (`label={null}`): the level name in the header above is always visible and updates live while dragging, so a fixed position reads better than a moving one anyway.
+- Mantine `Badge` uppercases its content, which turned "CoreML" into "COREML" — the Performance badges set `tt="none"`.
+- **The hardware line shows whichever spec the platform actually has** (`gpuSpec`). Apple Silicon reports **no `spdisplays_vram` field at all** — memory is unified with the CPU, so there is nothing to show; it reports `sppci_cores` instead, rendered as "10-core GPU". Dedicated VRAM is shown where it exists. Three parsing/formatting traps here, all fixed and covered by cases:
+  - `spdisplays_vram` units vary — discrete and Intel integrated GPUs commonly report **MB** ("1536 MB"), others GB. A `GB`-only regex silently dropped every MB-reporting Mac.
+  - Rounding straight to whole GB turned a 256 MB card into **"0 GB"** and 1536 MB into "2 GB". Below a gigabyte the value stays in MB; above it keeps one decimal until it is large enough not to need one.
+  - Windows `Win32_VideoController.AdapterRAM` is a **uint32 of bytes**, so it saturates just under 4 GB — an 8, 12 or 24 GB card all report ~4095 MB. `gpu.ts` therefore also reads `HardwareInformation.qwMemorySize` (REG_QWORD, falling back to the older 32-bit `HardwareInformation.MemorySize`, which can be REG_BINARY) from each driver's subkey under the display class GUID, matching CIM `Name` to registry `DriverDesc`. **This is a second, separate PowerShell call on purpose**: the adapter list already works, and a registry read that fails on some machine must not take the whole probe down — on any error it returns `[]` and the old AdapterRAM path stands.
+  - **`gpuVram.ts` exists so this is testable.** `gpu.ts` imports electron and cannot run outside the app, and the PowerShell only runs on Windows — so the resolution logic lives in an import-free module and is covered by cases for the saturated value, a missing registry entry, name case/whitespace mismatch, garbage and zero values, and both `ConvertTo-Json` shapes (bare object for one GPU, array for several). **The PowerShell itself has never been executed** — no Windows machine or PowerShell here — so it is written to fail safe rather than to be clever.
+
+### Never let the output outgrow the input
+
+Compression caps the video bitrate at the source's own, less what the output audio will cost, less 3 % for muxing overhead (`CAP_HEADROOM`). Two things make this correct rather than obvious:
+
+- **The cap goes only to `libx264`.** x264 treats `-maxrate`/`-bufsize` as a VBV ceiling on constrained CRF, so it binds only when the encode would otherwise exceed it — measured, CRF 16 on an efficient source went from **+34 % to −8 %**, while CRF 23 was untouched at −24 % either way. **VideoToolbox treats `-maxrate` as a target instead** and discards `-q:v` entirely: q20 and q54 both collapsed to exactly the same size, throwing away the user's quality setting. Never hand `-maxrate` to a hardware encoder here.
+- **Hardware encoders are policed after the fact.** If one produced a file larger than the source, `compression.ts` re-encodes that file with libx264 under the cap. Only once, and only from a hardware encoder — a libx264 result that is still too large would not change on a retry.
+
+Two traps that produced wrong caps, both guarded against:
+- **No floor above the source.** An earlier `MIN_VIDEO_CAP_BPS = 100 kbps` sat *above* a 72 kbps source, so the cap silently never bound and the output grew 25 %. There is no floor now; instead the cap is skipped entirely (with a log line) when it falls under `MIN_USEFUL_CAP_BPS`, which means the output audio alone costs about as much as the whole source and no video setting can win.
+- **Only subtract audio the file actually has.** `VideoMeta.hasAudio` exists for this: subtracting a 128 kbps budget from a silent file understates the cap badly.
+
+Verified across 8 combinations (4 sources spanning 72 kbps–3.2 Mbps, with and without audio, at CRF 16 and 23): every output came out at or below its source.
+
 ### Cancellation
 
 - Main side: each job's `AbortController` is stored in `Map<jobId, AbortController>`. On `cancel`, call `controller.abort()` and delete the entry.
@@ -98,6 +139,12 @@ protocol.handle('local-file', (request) => {
 ```
 
 **The path must be percent-encoded into a single URL segment.** The renderer builds the URL via `localFileUrl(path)` (`src/renderer/src/utils/localFile.ts`): `` `local-file:///${encodeURIComponent(path)}` ``. A raw `` `local-file://${path}` `` breaks on Windows — a path like `C:\Users\…` puts the drive letter in the URL authority and Chromium mangles the backslashes / drops the colon (it works on macOS only because POSIX paths start with `/`). The handler decodes the single segment and rebuilds an absolute `file://` URL with `pathToFileURL` (from `node:url`). Reference images as `src={localFileUrl(s.path)}` in JSX. The renderer CSP (`index.html`) includes `img-src 'self' local-file: data:`.
+
+### Table layout and long file names
+
+Both `VideoTable` and `SampleImageTable` set `style={{ tableLayout: 'fixed' }}`. In the default `auto` layout a long file name widens the Name column instead of triggering the `<Text truncate>` ellipsis, which pushes the table into horizontal scroll. Fixed layout bounds the cell, so `truncate` works; every other column therefore needs an explicit `w`.
+
+`ProgressModal` does **not** use `ScrollArea.Autosize` for its file rows. That component wraps children in a flex box that keeps `min-width: auto`, so one long name sized it past the modal's width (measured 675 px inside a 440 px modal) and the row's `flex: 1; min-width: 0` Text never ellipsed. A plain `<Box mah={360} style={{ overflowY: 'auto', overflowX: 'hidden' }}>` has none of that behaviour. Don't swap it back.
 
 ### Renderer asset paths
 
@@ -163,6 +210,24 @@ A producer–consumer pipeline: each frame is consumed the moment ffmpeg emits i
 - **Adaptive flush**: the pipeline is producer-bound, so when the queue drains with frames pending, flush immediately as a padded batch of 16 rather than waiting to fill — scoring sooner tightens early termination at no throughput cost.
 - **Early termination kills the producer**: when start-mode finds its first match, or end-mode sees the match window close (similarity drops after a match run), abort the extraction ffmpeg immediately. Skipping the remaining decode is often the dominant saving.
 - **Progress is 2-phase**: `0 → 0.90` driven by consumed frames (blend consumed/produced with the producer's pts/duration fraction, monotonic guard, snap to `0.90` on early termination); `0.90 → 1.0` = the ffmpeg stream-copy cut (`STREAM_END = 0.90` at the top of `cutting.ts`). The bar can jump to 90 % well before the whole video is decoded — that's expected.
+
+### Manual trim, and how it composes with the search
+
+Every video carries its own start–end window (`CutJob.trim`), edited in the Cutting table. **The window applies in all three cut modes** — it is not an alternative to the ML search, it bounds it:
+
+- `searchFloorMs = max(MIN_START_MS, trimStart)` and `searchCeilingMs = trimEnd`. Frames outside the window are never scored, which also ends the search early on a long video with a short window.
+- The final output window is `[max(matchPoint, trimStart), trimEnd]`. The search can only push the start **later**; the trim end always wins. A match at or past the trim end would yield a zero-length file, so that case falls back to the user's window with a warning.
+- With no match at all, the start stays at `trimStart` rather than the global `MIN_START_MS` — inventing a cut point inside the user's window would be worse than leaving it alone.
+- `CutMode = 'trim'` is the no-sample case: `sampleImageId` is `null`, the ML pipeline is skipped entirely, and the job is one `-c copy` stream copy. Progress then has no search phase, so the cut phase owns the whole bar (`cutPhaseStart = 0` instead of `STREAM_END`).
+
+**UI shape (deliberate).** The Cutting page is trim-first: the table always shows Trim start / Trim end, and the only action is **Trim**. That opens `SampleStepModal` — an *optional* refinement carrying the sample-image picker and the End/Start-of-match control, with two exits: "Proceed without sample" (`'trim'`) and "Proceed with sample" (`matchMode`). The sample picker and match-mode control live **only** in that modal; do not put them back on the page.
+
+Other consequences to keep in mind:
+- The cut uses `-ss <start> -i <input> -t <duration>`, **not `-to`**: with `-ss` before the input, `-to` has meant different things across ffmpeg versions, while `-t` (output duration) is unambiguous.
+- ffmpeg's `Duration:` banner reports the *input* length, which over-states the progress denominator whenever `-ss`/`-t` shorten the output. `runFfmpeg`'s optional 4th argument `expectedSeconds` overrides it; both cutting paths pass the known output length.
+- **Trim fields start empty**, showing only placeholders: blank start = 0, blank end = end of the video, so an untouched row means "the whole video". The `→ ~new size` is therefore suppressed until a row actually narrows the window — `734 MB → ~734 MB` is noise, not information. The renderer keeps trim fields as **raw text** (`TrimText`), not parsed seconds, so a half-typed `1:2` isn't rewritten under the cursor; `trimFieldError()` in `VideoTable.tsx` validates a field against the probed duration and gates the Trim button.
+- Outputs are named `<stem>_trim.<ext>` (the ML modes still produce `<stem>_cut.<ext>`).
+- The Cutting table shows **no Est. time column** (`showEstimate={false}`): its work is a stream copy whose wall time is dominated by process startup, so a per-file number there is noise. It still probes durations — they seed and validate the trim windows and drive the output-size column.
 
 The JS thread is ~99 % idle; parallelism lives in native land (ffmpeg as a separate process, sharp on the libuv pool, `session.run` on ORT threads / the ANE). Normalize + HWC→CHW ≈ 0.16 ms/frame and 512-dim cosine ≈ 0.5 µs in plain TS — negligible, which is why no GPU/BLAS math library is used (see Considered & rejected).
 
@@ -261,8 +326,8 @@ export async function extractFrames(
 Express a user-configurable behaviour with a small discrete set as a named type in `src/shared/types.ts`, not a boolean — keeps IPC argument lists readable and call sites self-documenting:
 
 ```ts
-export type CutMode = 'start' | 'end'
-export async function cutVideos(jobs: ..., cutMode: CutMode, onProgress: ..., signal: AbortSignal)
+export type CutMode = 'start' | 'end' | 'trim'
+export async function cutVideos(jobs: CutJob[], cutMode: CutMode, onProgress: ..., signal: AbortSignal)
 ```
 
 ### IPC handler default arguments
@@ -290,8 +355,10 @@ Register a custom scheme **before** `app.whenReady()` and handle it **after** (f
 
 ## Things not obvious from the code
 
+- **Time estimates are heuristics that self-calibrate** — the numbers in `ENCODER_SPEED` / `PRESET_SPEED` / `SEARCH_SPEED` are only cold-start guesses; `recordThroughput()` replaces them with measured EMAs per machine. Do not tune the constants against one benchmark — they only matter until the first real run of that encoder/mode. The UI labels them `~` and tooltips them as rough on purpose.
 - **`cos >= 0.9` threshold and 2-second start delay** — inherited from the JavaFX implementation. Intentional UX choices; preserve them when modifying the cutting logic.
-- **`CutMode` default is `'end'`** — "End of match" cuts at the _last_ similar frame (legacy JavaFX behavior — skips intros that match the sample); "Start of match" cuts at the _first_. The IPC handler defaults to `'end'` even if the renderer sends no value.
+- **`CutMode` default is `'end'`** — "End of match" cuts at the _last_ similar frame (legacy JavaFX behavior — skips intros that match the sample); "Start of match" cuts at the _first_; `'trim'` skips the ML search entirely. The IPC handler defaults to `'end'` even if the renderer sends no value.
+- **The 2-second start rule now has a floor, not a fixed value** — `MIN_START_MS` still applies, but an explicit trim start raises it (`max(MIN_START_MS, trimStart)`). It is never lowered, so the inherited JavaFX behaviour is preserved for the default full-video window.
 - **Output directory timestamps use local time**, not UTC. Matches the legacy app.
 - **Splash window and ONNX init run in parallel** in `bootstrap()`; the 1-second `initServices()` delay ensures the splash is visible even when ONNX loads instantly on fast hardware.
 - **macOS does not self-install updates (unsigned builds)** — Squirrel.Mac refuses to apply an update to an app without a valid Developer ID signature: the `.zip` downloads but `quitAndInstall()` silently no-ops and the update is re-offered every launch. `updater.ts` therefore sets `autoUpdater.autoDownload = false` on darwin and, on `update-available`, opens the GitHub **releases page** (resolved from `process.resourcesPath/app-update.yml`) for a manual download — no fake "Restart Now". Windows (NSIS) self-installs fine unsigned and keeps the full download → "Restart Now / Later" flow. To enable true macOS auto-update, add Developer ID signing + notarization to CI; then `autoDownload` can be re-enabled on darwin. (In dev, the check is skipped entirely via `!app.isPackaged`.)

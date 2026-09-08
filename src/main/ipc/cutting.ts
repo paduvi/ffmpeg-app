@@ -2,7 +2,7 @@ import { ipcMain, BrowserWindow } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { cutVideos } from '../services/cutting'
 import { notifyJobDone } from '../services/notify'
-import type { CutMode } from '../../shared/types'
+import type { CutJob, CutMode } from '../../shared/types'
 import log from '../logger'
 
 const controllers = new Map<string, AbortController>()
@@ -10,7 +10,7 @@ const controllers = new Map<string, AbortController>()
 export function registerCuttingHandlers(): void {
   ipcMain.handle(
     'cutting:start',
-    async (event, jobs: { input: string; sampleImageId: number }[], cutMode: CutMode = 'end') => {
+    async (event, jobs: CutJob[], cutMode: CutMode = 'end') => {
       const jobId = randomUUID()
       const controller = new AbortController()
       controllers.set(jobId, controller)

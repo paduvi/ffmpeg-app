@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react'
-import { Button, Grid, Group, Image, SegmentedControl, Stack, Text, Title } from '@mantine/core'
+import { useEffect, useMemo, useState } from 'react'
+import { Button, Group, Stack, Text, TextInput, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { IconPlus, IconScissors, IconPhoto, IconTrash } from '@tabler/icons-react'
-import type { CutMode, FileProgress, SampleImage, VideoFile } from '@shared/types'
-import { VideoTable } from '../components/VideoTable'
-import { SampleImageTable } from '../components/SampleImageTable'
+import { IconPlus, IconScissors, IconTrash } from '@tabler/icons-react'
+import type { CutJob, CutMode, FileProgress, SampleImage, TrimRange, VideoFile } from '@shared/types'
+import { VideoTable, trimFieldError, type TrimText } from '../components/VideoTable'
+import { SampleStepModal, type MatchMode } from '../components/SampleStepModal'
 import { ProgressModal } from '../components/ProgressModal'
-import { localFileUrl } from '../utils/localFile'
+import { useVideoAnalyses } from '../hooks/useVideoAnalyses'
+import { parseTimecode } from '../utils/time'
+
+const EMPTY_TRIM: TrimText = { start: '', end: '' }
 
 export function Cutting() {
   const [files, setFiles] = useState<VideoFile[]>([])
@@ -15,8 +18,18 @@ export function Cutting() {
   const [selectedSampleId, setSelectedSampleId] = useState<number | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
   const [initialFiles, setInitialFiles] = useState<FileProgress[]>([])
-  const [cutMode, setCutMode] = useState<CutMode>('end')
+  const [matchMode, setMatchMode] = useState<MatchMode>('end')
+  // Raw text per file path — see TrimText in VideoTable.
+  const [trimText, setTrimText] = useState<Map<string, TrimText>>(new Map())
+  const [bulkTrim, setBulkTrim] = useState<TrimText>(EMPTY_TRIM)
+  const [sampleStepOpened, { open: openSampleStep, close: closeSampleStep }] = useDisclosure(false)
   const [progressOpened, { open: openProgress, close: closeProgress }] = useDisclosure(false)
+
+  // Probed for durations only — they seed and validate the trim windows and
+  // drive the output-size column. The Cutting table shows no time estimate
+  // (see VideoTable's showEstimate).
+  const task = useMemo(() => ({ kind: 'cutting' as const, cutMode: 'trim' as CutMode }), [])
+  const { analyses, analyzing } = useVideoAnalyses(files, task)
 
   useEffect(() => {
     // Restore the last-used sample; fall back to the default (permanent) one.
@@ -34,8 +47,6 @@ export function Cutting() {
     setSelectedSampleId(id)
     void window.api.settings.set('lastSampleImageId', id)
   }
-
-  const selectedSample = samples.find((s) => s.id === selectedSampleId) ?? null
 
   const addVideos = async (): Promise<void> => {
     const picked = await window.api.dialog.openVideos()
@@ -69,6 +80,11 @@ export function Cutting() {
 
   const removeSelected = (): void => {
     setFiles((prev) => prev.filter((f) => !selectedPaths.has(f.path)))
+    setTrimText((prev) => {
+      const next = new Map(prev)
+      for (const path of selectedPaths) next.delete(path)
+      return next
+    })
     setSelectedPaths(new Set())
   }
 
@@ -83,15 +99,82 @@ export function Cutting() {
   const toggleAll = (selectAll: boolean): void =>
     setSelectedPaths(selectAll ? new Set(files.map((f) => f.path)) : new Set())
 
-  const process = async (): Promise<void> => {
-    if (!selectedSampleId) return
-    const targets = files.filter((f) => selectedPaths.has(f.path))
+  const setTrimField = (path: string, field: keyof TrimText, value: string): void =>
+    setTrimText((prev) => {
+      const next = new Map(prev)
+      next.set(path, { ...(next.get(path) ?? EMPTY_TRIM), [field]: value })
+      return next
+    })
+
+  /** Copy the bulk start/end into every selected row — only the filled fields. */
+  const applyBulkTrim = (): void =>
+    setTrimText((prev) => {
+      const next = new Map(prev)
+      for (const path of selectedPaths) {
+        const current = next.get(path) ?? EMPTY_TRIM
+        next.set(path, {
+          start: bulkTrim.start.trim() ? bulkTrim.start : current.start,
+          end: bulkTrim.end.trim() ? bulkTrim.end : current.end
+        })
+      }
+      return next
+    })
+
+  const trimRowInvalid = (path: string): boolean => {
+    const text = trimText.get(path) ?? EMPTY_TRIM
+    const durationSec = analyses.get(path)?.durationSec ?? null
+    return (
+      trimFieldError(text, 'start', durationSec) !== null ||
+      trimFieldError(text, 'end', durationSec) !== null
+    )
+  }
+
+  /** Blank start = 0; blank end = to the end of the video (null). */
+  const trimRangeFor = (path: string): TrimRange => {
+    const text = trimText.get(path) ?? EMPTY_TRIM
+    return {
+      startSec: text.start.trim() ? (parseTimecode(text.start) ?? 0) : 0,
+      endSec: text.end.trim() ? parseTimecode(text.end) : null
+    }
+  }
+
+  /**
+   * Cutting is a stream copy, so the output keeps the input's bitrate and its
+   * size scales with the kept fraction of the video. With a sample image the
+   * search can only shorten it further, so this is an upper bound there.
+   *
+   * Returns null while the row still spans the whole video — the fields start
+   * empty, and "734 MB → ~734 MB" is noise, not information.
+   */
+  const outputBytesFor = (path: string): number | null => {
+    const analysis = analyses.get(path)
+    const file = files.find((f) => f.path === path)
+    if (!analysis?.durationSec || !file || trimRowInvalid(path)) return null
+    const { startSec, endSec } = trimRangeFor(path)
+    const kept = (endSec ?? analysis.durationSec) - startSec
+    if (kept <= 0 || kept >= analysis.durationSec) return null
+    return file.size * (kept / analysis.durationSec)
+  }
+
+  const targets = files.filter((f) => selectedPaths.has(f.path))
+
+  const startJob = async (cutMode: CutMode): Promise<void> => {
     if (!targets.length) return
-    const jobs = targets.map((f) => ({ input: f.path, sampleImageId: selectedSampleId }))
+    const sampleImageId = cutMode === 'trim' ? null : selectedSampleId
+    if (cutMode !== 'trim' && sampleImageId === null) return
+
+    // The trim window rides along in every mode — main composes it with the
+    // ML search rather than choosing one or the other.
+    const jobs: CutJob[] = targets.map((f) => ({
+      input: f.path,
+      sampleImageId,
+      trim: trimRangeFor(f.path)
+    }))
     // Build the initial file list before start() so the modal can show all rows
     // immediately — without waiting for the first IPC progress event.
     setInitialFiles(targets.map((f) => ({ name: f.name, value: 0, done: false, active: false })))
     const id = await window.api.cutting.start(jobs, cutMode)
+    closeSampleStep()
     setJobId(id)
     openProgress()
   }
@@ -105,91 +188,93 @@ export function Cutting() {
     closeProgress()
   }
 
-  const canProcess = selectedPaths.size > 0 && selectedSampleId !== null
+  const canTrim = targets.length > 0 && targets.every((f) => !trimRowInvalid(f.path))
 
   return (
     <Stack gap="md">
       <Title order={4}>Intelligent Video Cutting</Title>
 
-      <Grid gutter="md">
-        <Grid.Col span={7}>
-          <Stack gap="xs">
-            <Group align="center">
-              <Button leftSection={<IconPlus size={16} />} onClick={addVideos}>
-                Add Video
-              </Button>
-              <Button
-                leftSection={<IconTrash size={16} />}
-                variant="light"
-                color="red"
-                disabled={selectedPaths.size === 0}
-                onClick={removeSelected}
-              >
-                Remove
-              </Button>
-              <Button
-                leftSection={<IconScissors size={16} />}
-                disabled={!canProcess}
-                onClick={process}
-              >
-                Process
-              </Button>
-              <Group gap={6} align="center">
-                <Text size="xs" c="dimmed" fw={500}>Cut at:</Text>
-                <SegmentedControl
-                  value={cutMode}
-                  onChange={(v) => setCutMode(v as CutMode)}
-                  size="xs"
-                  data={[
-                    { value: 'end', label: 'End of match' },
-                    { value: 'start', label: 'Start of match' },
-                  ]}
-                />
-              </Group>
-            </Group>
-            <VideoTable
-              files={files}
-              selectedPaths={selectedPaths}
-              onToggle={toggle}
-              onToggleAll={toggleAll}
-            />
-          </Stack>
-        </Grid.Col>
+      <Stack gap="xs">
+        <Group align="center">
+          <Button leftSection={<IconPlus size={16} />} onClick={addVideos}>
+            Add Video
+          </Button>
+          <Button
+            leftSection={<IconTrash size={16} />}
+            variant="light"
+            color="red"
+            disabled={selectedPaths.size === 0}
+            onClick={removeSelected}
+          >
+            Remove
+          </Button>
+          <Button
+            leftSection={<IconScissors size={16} />}
+            disabled={!canTrim}
+            onClick={openSampleStep}
+          >
+            Trim
+          </Button>
+        </Group>
 
-        <Grid.Col span={5}>
-          <Stack gap="xs">
-            <Group>
-              <Button
-                leftSection={<IconPhoto size={16} />}
-                variant="light"
-                onClick={addSample}
-              >
-                Add Sample
-              </Button>
-            </Group>
-            <SampleImageTable
-              samples={samples}
-              selectedId={selectedSampleId}
-              onSelect={selectSample}
-              onRemove={removeSample}
-            />
-            {selectedSample && (
-              <Stack gap={4}>
-                <Text size="xs" c="dimmed">
-                  Selected sample
-                </Text>
-                <Image
-                  src={localFileUrl(selectedSample.path)}
-                  w="100%"
-                  mah={300}
-                  fit="contain"
-                  radius="md"
-                />
-              </Stack>
-            )}
-          </Stack>
-        </Grid.Col>
-      </Grid>
+        <Group gap="xs" align="center">
+          <Text size="xs" c="dimmed" fw={500}>
+            Set for selected:
+          </Text>
+          <TextInput
+            size="xs"
+            w={110}
+            placeholder="start 0:00"
+            value={bulkTrim.start}
+            onChange={(e) => setBulkTrim((p) => ({ ...p, start: e.currentTarget.value }))}
+          />
+          <TextInput
+            size="xs"
+            w={110}
+            placeholder="end"
+            value={bulkTrim.end}
+            onChange={(e) => setBulkTrim((p) => ({ ...p, end: e.currentTarget.value }))}
+          />
+          <Button
+            size="xs"
+            variant="light"
+            disabled={selectedPaths.size === 0 || (!bulkTrim.start.trim() && !bulkTrim.end.trim())}
+            onClick={applyBulkTrim}
+          >
+            Apply
+          </Button>
+          <Text size="xs" c="dimmed">
+            Each video keeps its own range; times accept ss, mm:ss or hh:mm:ss.
+          </Text>
+        </Group>
+
+        <VideoTable
+          files={files}
+          selectedPaths={selectedPaths}
+          onToggle={toggle}
+          onToggleAll={toggleAll}
+          analyses={analyses}
+          analyzing={analyzing}
+          showEstimate={false}
+          trim={{ values: trimText, onChange: setTrimField }}
+          outputBytesFor={outputBytesFor}
+        />
+      </Stack>
+
+      <SampleStepModal
+        opened={sampleStepOpened}
+        onClose={closeSampleStep}
+        targetCount={targets.length}
+        samples={samples}
+        selectedId={selectedSampleId}
+        onSelect={selectSample}
+        onAddSample={addSample}
+        onRemoveSample={removeSample}
+        matchMode={matchMode}
+        onMatchModeChange={setMatchMode}
+        onProceedWithSample={() => void startJob(matchMode)}
+        onProceedWithoutSample={() => void startJob('trim')}
+      />
 
       <ProgressModal
         opened={progressOpened}

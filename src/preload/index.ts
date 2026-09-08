@@ -1,10 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import type {
+  CutJob,
   CutMode,
+  EstimateTask,
   GpuStatus,
   Settings,
   SampleImage,
+  VideoAnalysis,
   VideoFile,
   FileProgress
 } from '../shared/types'
@@ -47,6 +50,11 @@ const api = {
     reprobe: (): Promise<GpuStatus> => ipcRenderer.invoke('gpu:reprobe')
   },
 
+  media: {
+    analyze: (paths: string[], task: EstimateTask): Promise<VideoAnalysis[]> =>
+      ipcRenderer.invoke('media:analyze', paths, task)
+  },
+
   compression: {
     start: (jobs: { input: string; output?: string }[]): Promise<string> =>
       ipcRenderer.invoke('compression:start', jobs),
@@ -66,7 +74,7 @@ const api = {
   },
 
   cutting: {
-    start: (jobs: { input: string; sampleImageId: number }[], cutMode: CutMode): Promise<string> =>
+    start: (jobs: CutJob[], cutMode: CutMode): Promise<string> =>
       ipcRenderer.invoke('cutting:start', jobs, cutMode),
     cancel: (jobId: string): Promise<void> => ipcRenderer.invoke('cutting:cancel', jobId),
     onProgress: (cb: (jobId: string, progress: FileProgress[]) => void) => {

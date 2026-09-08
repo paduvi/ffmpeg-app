@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button, Group, Stack, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { IconPlus, IconTrash } from '@tabler/icons-react'
 import type { FileProgress, VideoFile } from '@shared/types'
 import { VideoTable } from '../components/VideoTable'
 import { ProgressModal } from '../components/ProgressModal'
+import { useVideoAnalyses } from '../hooks/useVideoAnalyses'
 
 export function Compression() {
   const [files, setFiles] = useState<VideoFile[]>([])
@@ -12,6 +13,9 @@ export function Compression() {
   const [jobId, setJobId] = useState<string | null>(null)
   const [initialFiles, setInitialFiles] = useState<FileProgress[]>([])
   const [progressOpened, { open: openProgress, close: closeProgress }] = useDisclosure(false)
+
+  const task = useMemo(() => ({ kind: 'compression' as const }), [])
+  const { analyses, analyzing } = useVideoAnalyses(files, task)
 
   const addVideos = async (): Promise<void> => {
     const picked = await window.api.dialog.openVideos()
@@ -92,6 +96,8 @@ export function Compression() {
         selectedPaths={selectedPaths}
         onToggle={toggle}
         onToggleAll={toggleAll}
+        analyses={analyses}
+        analyzing={analyzing}
       />
 
       <ProgressModal

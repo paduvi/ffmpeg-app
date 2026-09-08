@@ -154,10 +154,22 @@ const AMF_QUALITY: Record<CompressionPreset, string> = {
  * - qsv: `-global_quality` enables ICQ mode; accepts libx264 preset names.
  * - amf: constant-QP mode; quality is speed/balanced/quality.
  */
+/**
+ * @param maxBitrateBps Ceiling for the video bitrate, keeping the output from
+ *   growing past the source. **Only applied to libx264**: x264 treats it as a
+ *   VBV ceiling on constrained-CRF, so it binds only when the encode would
+ *   otherwise exceed it (measured: CRF 16 on an efficient source went from
+ *   +34 % to −8 %, while CRF 23 was untouched at −24 % either way).
+ *   VideoToolbox instead treats `-maxrate` as a *target* and discards `-q:v`
+ *   entirely — q20 and q54 both collapsed to the same size — so hardware
+ *   encoders keep their quality setting and are policed after the fact by the
+ *   size guard in compression.ts.
+ */
 export function buildVideoArgs(
   encoder: VideoEncoder,
   preset: CompressionPreset,
-  crf: number
+  crf: number,
+  maxBitrateBps?: number
 ): string[] {
   switch (encoder) {
     case 'h264_videotoolbox': {
@@ -179,6 +191,16 @@ export function buildVideoArgs(
         '-rc', 'cqp', '-qp_i', String(crf), '-qp_p', String(crf)
       ]
     case 'libx264':
-      return ['-c:v', 'libx264', '-preset', preset, '-crf', String(crf)]
+      return [
+        '-c:v', 'libx264', '-preset', preset, '-crf', String(crf),
+        // bufsize = 2× maxrate: a VBV window of ~2 s, tight enough to hold the
+        // average down without starving individual high-motion scenes.
+        ...(maxBitrateBps && maxBitrateBps > 0
+          ? [
+              '-maxrate', String(Math.round(maxBitrateBps)),
+              '-bufsize', String(Math.round(maxBitrateBps * 2))
+            ]
+          : [])
+      ]
   }
 }

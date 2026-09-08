@@ -2,6 +2,12 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import store from '../store'
 import log from '../logger'
+import {
+  parseRegistryVram,
+  resolveVramMb,
+  type RegistryVram,
+  type WindowsAdapter
+} from './gpuVram'
 import type { GpuInfo, GpuVendor } from '../../shared/types'
 
 const execFileAsync = promisify(execFile)
@@ -31,6 +37,21 @@ async function runPowerShell(command: string): Promise<string> {
   throw lastErr instanceof Error ? lastErr : new Error('No usable PowerShell executable found')
 }
 
+/**
+ * Parse a `spdisplays_vram` string into megabytes.
+ *
+ * The unit varies: discrete and Intel integrated GPUs commonly report MB
+ * ("1536 MB"), others GB ("8 GB"). Matching only GB silently dropped every
+ * MB-reporting Mac, which showed no memory at all.
+ */
+function parseVramMb(raw: unknown): number | undefined {
+  const m = /(\d+(?:\.\d+)?)\s*(MB|GB)/i.exec(String(raw ?? ''))
+  if (!m) return undefined
+  const value = Number(m[1])
+  if (!Number.isFinite(value) || value <= 0) return undefined
+  return Math.round(m[2].toUpperCase() === 'GB' ? value * 1024 : value)
+}
+
 function vendorFromName(name: string): GpuVendor {
   const n = name.toLowerCase()
   if (n.includes('apple')) return 'apple'
@@ -47,11 +68,52 @@ async function detectDarwin(): Promise<GpuInfo> {
   const data = JSON.parse(stdout) as { SPDisplaysDataType?: Array<Record<string, unknown>> }
   const gpu = data.SPDisplaysDataType?.[0]
   const model = String(gpu?.sppci_model ?? gpu?._name ?? 'Unknown')
-  const vramMatch = /(\d+)\s*GB/i.exec(String(gpu?.spdisplays_vram ?? ''))
+  // Apple Silicon reports no `spdisplays_vram` at all (unified memory), but does
+  // report `sppci_cores` — which is the number that actually means something there.
+  const cores = Number(gpu?.sppci_cores)
   return {
     vendor: vendorFromName(model),
     model,
-    vramMb: vramMatch ? Number(vramMatch[1]) * 1024 : undefined
+    vramMb: parseVramMb(gpu?.spdisplays_vram),
+    cores: Number.isInteger(cores) && cores > 0 ? cores : undefined
+  }
+}
+
+// Display adapters' driver class. Each subkey is one installed driver, and
+// carries the true VRAM that Win32_VideoController.AdapterRAM cannot express.
+const DISPLAY_CLASS_KEY =
+  'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}'
+
+const REGISTRY_VRAM_COMMAND = [
+  "$ErrorActionPreference='SilentlyContinue';",
+  `Get-ChildItem '${DISPLAY_CLASS_KEY}' | ForEach-Object {`,
+  '  $p = Get-ItemProperty -Path $_.PSPath;',
+  '  if ($p.DriverDesc) {',
+  // REG_QWORD on modern drivers; older ones only have the 32-bit MemorySize,
+  // which may come back as REG_BINARY and needs unpacking.
+  "    $q = $p.'HardwareInformation.qwMemorySize';",
+  "    if ($null -eq $q) { $q = $p.'HardwareInformation.MemorySize' }",
+  '    if ($q -is [byte[]]) { $q = [System.BitConverter]::ToUInt32($q, 0) }',
+  '    if ($null -ne $q) {',
+  '      [pscustomobject]@{ Name = [string]$p.DriverDesc; Bytes = [string]$q }',
+  '    }',
+  '  }',
+  '} | ConvertTo-Json -Compress'
+].join(' ')
+
+/**
+ * True VRAM per driver, or `[]` if anything goes wrong.
+ *
+ * Deliberately a second PowerShell call rather than one combined query: the
+ * adapter list already works, and a registry read that fails on some machine
+ * must not take the whole probe down with it.
+ */
+async function readRegistryVram(): Promise<RegistryVram[]> {
+  try {
+    return parseRegistryVram(await runPowerShell(REGISTRY_VRAM_COMMAND))
+  } catch (err) {
+    log.debug(`GPU registry VRAM lookup failed, falling back to AdapterRAM: ${String(err)}`)
+    return []
   }
 }
 
@@ -59,9 +121,9 @@ async function detectWin32(): Promise<GpuInfo> {
   const stdout = await runPowerShell(
     'Get-CimInstance Win32_VideoController | Select-Object Name, AdapterRAM, DriverVersion | ConvertTo-Json'
   )
-  type Adapter = { Name?: string; AdapterRAM?: number; DriverVersion?: string }
-  const parsed = JSON.parse(stdout) as Adapter | Adapter[]
+  const parsed = JSON.parse(stdout) as WindowsAdapter | WindowsAdapter[]
   const adapters = Array.isArray(parsed) ? parsed : [parsed]
+  const registry = await readRegistryVram()
 
   // Multi-GPU machines (e.g. NVIDIA dGPU + Intel iGPU): prefer the most
   // capable vendor for the encoder ladder.
@@ -72,7 +134,7 @@ async function detectWin32(): Promise<GpuInfo> {
     const info: GpuInfo = {
       vendor: vendorFromName(model),
       model,
-      vramMb: adapter.AdapterRAM ? Math.round(adapter.AdapterRAM / (1024 * 1024)) : undefined,
+      vramMb: resolveVramMb(adapter, registry),
       driverVersion: adapter.DriverVersion ?? undefined
     }
     if (rank[info.vendor] > rank[best.vendor]) best = info

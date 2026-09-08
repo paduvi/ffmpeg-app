@@ -16,7 +16,14 @@ export type GpuVendor = 'apple' | 'nvidia' | 'amd' | 'intel' | 'none'
 export type GpuInfo = {
   vendor: GpuVendor
   model: string
+  /**
+   * Dedicated video memory. Absent on Apple Silicon, which shares one unified
+   * pool with the CPU and reports no separate figure — `cores` is the
+   * meaningful spec there instead.
+   */
   vramMb?: number
+  /** GPU core count. macOS only; `system_profiler` reports it, Windows does not. */
+  cores?: number
   driverVersion?: string
 }
 
@@ -49,6 +56,8 @@ export type Settings = {
   /** Detection/probe caches — managed by gpu.ts / encoders.ts, not user-edited. */
   gpuInfo: GpuInfo | null
   encoderProbe: EncoderProbe | null
+  /** Learned processing speeds — managed by estimate.ts, not user-edited. */
+  throughput: Record<string, number>
 }
 
 export type SampleImage = {
@@ -63,13 +72,59 @@ export type FileProgress = {
   value: number   // 0–1
   done: boolean
   active: boolean // currently being processed (shows animation even at 0%)
+  /**
+   * Input/output sizes, set once a file finishes so the progress modal can show
+   * the real size change. Only main knows these — unlike the ETA, they cannot
+   * be derived renderer-side from `value`.
+   */
+  inputBytes?: number
+  outputBytes?: number
 }
 
-/** Whether to cut at the first similar frame (start) or the last (end of match). */
-export type CutMode = 'start' | 'end'
+/**
+ * How a cutting job decides where to cut.
+ * - 'start' / 'end' — ML search against the sample image; cut at the first
+ *   similar frame, or at the last one of the match window.
+ * - 'trim' — no search at all; each video is trimmed to its own start–end
+ *   range supplied by the user (see `CutJob.trim`).
+ */
+export type CutMode = 'start' | 'end' | 'trim'
+
+/** A user-supplied trim window for one video, in seconds from its start. */
+export type TrimRange = {
+  startSec: number
+  /** null = keep everything from `startSec` to the end of the video. */
+  endSec: number | null
+}
+
+export type CutJob = {
+  input: string
+  /** Required for 'start'/'end'; null when cutting without a sample image. */
+  sampleImageId: number | null
+  /**
+   * The user's per-video window ("dynamic per video"). Applied in **every**
+   * mode: it bounds the ML search and always supplies the output's end, so a
+   * sample-image cut and a manual trim compose rather than conflict.
+   */
+  trim?: TrimRange
+}
 
 export type VideoFile = {
   path: string
   name: string
   size: number
+}
+
+/** What a duration estimate is being requested for. */
+export type EstimateTask = { kind: 'compression' } | { kind: 'cutting'; cutMode: CutMode }
+
+/** Probed media facts plus the heuristic processing-time estimate for a task. */
+export type VideoAnalysis = {
+  path: string
+  /** Container duration in seconds; null when ffmpeg could not report one. */
+  durationSec: number | null
+  width: number | null
+  height: number | null
+  /** Rough wall-clock estimate in seconds; null when duration is unknown. */
+  estimatedSec: number | null
 }

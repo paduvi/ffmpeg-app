@@ -38,10 +38,17 @@ export function resolveFfmpegPath(): string {
   return binary
 }
 
+/**
+ * @param expectedSeconds Length of the *output* in seconds, when the caller
+ *   already knows it. ffmpeg's `Duration:` banner reports the **input** length,
+ *   which over-states the denominator whenever `-ss`/`-t` shorten the output —
+ *   the bar would then stall short of 100 %. Omit it for whole-file jobs.
+ */
 export function runFfmpeg(
   args: string[],
   onProgress: (value: number) => void,
-  signal: AbortSignal
+  signal: AbortSignal,
+  expectedSeconds?: number
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     // Guard: if already aborted before we even spawn, bail immediately
@@ -62,7 +69,7 @@ export function runFfmpeg(
     }
     signal.addEventListener('abort', onAbort, { once: true })
 
-    let totalSeconds = 0
+    let totalSeconds = expectedSeconds && expectedSeconds > 0 ? expectedSeconds : 0
 
     // FFmpeg writes all progress info to stderr
     const rl = createInterface({ input: proc.stderr! })

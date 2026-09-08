@@ -12,7 +12,8 @@ const store = new Store<Settings>({
     videoExtension: 'mp4',
     lastSampleImageId: null,
     gpuInfo: null,
-    encoderProbe: null
+    encoderProbe: null,
+    throughput: {}
   }
 })
 

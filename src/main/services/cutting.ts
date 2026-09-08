@@ -1,10 +1,12 @@
 import { join, basename, extname } from 'node:path'
-import type { CutMode, FileProgress } from '../../shared/types'
+import type { CutJob, CutMode, FileProgress } from '../../shared/types'
 import { mkdirSync, unlinkSync, existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import pLimit from 'p-limit'
 import { runFfmpeg } from './ffmpeg'
 import { streamFrames, type FrameSampling } from './frames'
+import { probeVideo } from './probe'
+import { recordThroughput } from './estimate'
 import { preprocessImage, normalizeToChw, FRAME_FLOATS } from './preprocess'
 import { getEmbedding, getEmbeddings, cosineSimilarity, BATCH_SIZE } from './similarity'
 import { getSampleImage } from '../db/sampleImages'
@@ -25,6 +27,7 @@ const CUT_CONCURRENCY = 4
 // Progress phases (must sum to 1):
 //   streaming extract+search  0 → 0.90  (producer/consumer pipeline)
 //   ffmpeg cut                0.90 → 1.00
+// Trim mode skips the search entirely, so its cut phase starts at 0 instead.
 const STREAM_END = 0.9
 
 function makeOutputDir(): string {
@@ -44,7 +47,7 @@ function makeOutputDir(): string {
 export type CuttingResult = { outputs: string[]; outputDir: string }
 
 export async function cutVideos(
-  jobs: { input: string; sampleImageId: number }[],
+  jobs: CutJob[],
   cutMode: CutMode,
   onProgress: (progress: FileProgress[]) => void,
   signal: AbortSignal
@@ -78,19 +81,40 @@ export async function cutVideos(
   const tasks = jobs.map((job, i) =>
     limit(async () => {
       if (signal.aborted) return
-      const { input, sampleImageId } = job
+      const { input } = job
+      const startedAt = Date.now()
 
       // Mark as active (value=0 → striped "Preparing…" animation in the modal)
       perFile[i] = { ...perFile[i], active: true, value: 0 }
       onProgress([...perFile])
 
-      const sampleEmbedding = await sampleEmbeddingFor(sampleImageId)
+      // Cached after the renderer's estimate probe, so normally free here.
+      const meta = await probeVideo(input)
+
+      // The user's window applies in every mode: it bounds the ML search and
+      // always supplies the output's end, so a sample cut and a manual trim
+      // compose instead of competing. A missing range means the whole video.
+      const trim = job.trim
+      const trimStartSec = Math.max(0, trim?.startSec ?? 0)
+      // A null end means "to the end of the video"; prefer the probed duration
+      // so the cut phase gets a real denominator for its progress bar.
+      const trimEndSec = trim?.endSec ?? meta.durationSec ?? null
+      if (trimEndSec !== null && trimEndSec <= trimStartSec) {
+        throw new Error(
+          `Trim range for ${basename(input)} is empty: end ${trimEndSec}s is not after start ${trimStartSec}s`
+        )
+      }
+      // The 2-second start rule is inherited from the JavaFX app; an explicit
+      // trim start raises that floor but never lowers it.
+      const searchFloorMs = Math.max(MIN_START_MS, trimStartSec * 1000)
+      const searchCeilingMs = trimEndSec === null ? Infinity : trimEndSec * 1000
 
       // ── Streaming phase: extraction and search overlap (0 → STREAM_END) ──
       // Frames arrive from the ffmpeg pipe as they are decoded and are scored
       // in constant-shape batches; a completed match window kills the producer
       // without decoding the rest of the video.
       const runStreamingSearch = async (
+        sampleEmbedding: Float32Array,
         useHwaccel: boolean,
         sampling: FrameSampling
       ): Promise<{ matchStartMs: number | null; matchEndMs: number | null }> => {
@@ -153,7 +177,13 @@ export async function cutVideos(
           for await (const frame of stream.frames) {
             if (signal.aborted || terminated) break
             consumed++
-            if (frame.timestampMs >= MIN_START_MS) {
+            // Past the trim end nothing can affect the output — flush and stop.
+            if (frame.timestampMs > searchCeilingMs) {
+              await flushBatch()
+              terminated = true
+              break
+            }
+            if (frame.timestampMs >= searchFloorMs) {
               normalizeToChw(frame.pixels, batchBuf, batchTs.length * FRAME_FLOATS)
               batchTs.push(frame.timestampMs)
               // Adaptive flush: full batch, or producer idle (queue drained) — a
@@ -173,10 +203,11 @@ export async function cutVideos(
       }
 
       const searchWith = async (
+        sampleEmbedding: Float32Array,
         sampling: FrameSampling
       ): Promise<{ matchStartMs: number | null; matchEndMs: number | null }> => {
         try {
-          return await runStreamingSearch(true, sampling)
+          return await runStreamingSearch(sampleEmbedding, true, sampling)
         } catch (err) {
           if (signal.aborted) throw err
           // Hardware-accelerated decode can fail on exotic codecs even though
@@ -186,56 +217,104 @@ export async function cutVideos(
           )
           perFile[i] = { ...perFile[i], value: 0, active: true }
           onProgress([...perFile])
-          return await runStreamingSearch(false, sampling)
+          return await runStreamingSearch(sampleEmbedding, false, sampling)
         }
       }
 
-      // Keyframe-only decoding is ~34× faster and costs no output precision (the
-      // -c copy cut snaps to a keyframe regardless). A match window shorter than
-      // one GOP can slip through it, so an empty result re-runs densely.
-      let search = await searchWith('keyframes')
-      if (search.matchStartMs === null && !signal.aborted) {
-        log.info('No match at keyframe sampling — retrying with dense 1 frame/s sampling')
-        perFile[i] = { ...perFile[i], value: 0, active: true }
-        onProgress([...perFile])
-        search = await searchWith('dense')
+      /** Locate the cut point with the ML search. Returns seconds from the start. */
+      const searchCutSeconds = async (): Promise<number> => {
+        const { sampleImageId } = job
+        if (sampleImageId == null) {
+          throw new Error(`No sample image supplied for ${basename(input)}`)
+        }
+        const sampleEmbedding = await sampleEmbeddingFor(sampleImageId)
+
+        // Keyframe-only decoding is ~34× faster and costs no output precision (the
+        // -c copy cut snaps to a keyframe regardless). A match window shorter than
+        // one GOP can slip through it, so an empty result re-runs densely.
+        let search = await searchWith(sampleEmbedding, 'keyframes')
+        if (search.matchStartMs === null && !signal.aborted) {
+          log.info('No match at keyframe sampling — retrying with dense 1 frame/s sampling')
+          perFile[i] = { ...perFile[i], value: 0, active: true }
+          onProgress([...perFile])
+          search = await searchWith(sampleEmbedding, 'dense')
+        }
+        const { matchStartMs, matchEndMs } = search
+
+        // Pick cut point based on mode; with no match at all, keep the user's
+        // window as-is rather than inventing a cut point.
+        const noMatchMs = trimStartSec * 1000
+        const cutMs =
+          cutMode === 'start'
+            ? (matchStartMs ?? noMatchMs)
+            : (matchEndMs ?? matchStartMs ?? noMatchMs)
+
+        log.info(
+          `Cut mode=${cutMode} matchStart=${matchStartMs}ms matchEnd=${matchEndMs}ms → cutting at ${cutMs}ms`
+        )
+        return cutMs / 1000
       }
-      const { matchStartMs, matchEndMs } = search
-
-      // Pick cut point based on mode; fall back to MIN_START_MS if no match
-      const cutMs =
-        cutMode === 'start'
-          ? (matchStartMs ?? MIN_START_MS)
-          : (matchEndMs ?? matchStartMs ?? MIN_START_MS)
-
-      log.info(
-        `Cut mode=${cutMode} matchStart=${matchStartMs}ms matchEnd=${matchEndMs}ms → cutting at ${cutMs}ms`
-      )
 
       const stem = basename(input, extname(input))
       const ext = extname(input).replace('.', '') || 'mp4'
-      const output = join(outputDir, `${stem}_cut.${ext}`)
+
+      // 'trim' does no searching, so its stream copy owns the whole bar.
+      const cutPhaseStart = cutMode === 'trim' ? 0 : STREAM_END
+
+      // The ML search may push the start later; it can never pull it earlier
+      // than the user's trim start, and the trim end always wins.
+      let startSec =
+        cutMode === 'trim'
+          ? trimStartSec
+          : Math.max(await searchCutSeconds(), trimStartSec)
+      const endSec = trimEndSec
+      // A match right at the end of the window would leave nothing to write.
+      // Keeping the user's window beats emitting a zero-length file.
+      if (endSec !== null && startSec >= endSec) {
+        log.warn(
+          `${basename(input)}: cut point ${startSec}s is at/after the trim end ${endSec}s — keeping the full trim window`
+        )
+        startSec = trimStartSec
+      }
+      const output = join(outputDir, `${stem}_${cutMode === 'trim' ? 'trim' : 'cut'}.${ext}`)
+
+      log.info(
+        `${basename(input)}: mode=${cutMode} output window ${startSec}s → ${endSec ?? 'end of file'}`
+      )
+
+      // Known output length — both for `-t` and as the progress denominator
+      // (ffmpeg's own `Duration:` banner reports the *input* length).
+      const outputSeconds = endSec !== null ? Math.max(endSec - startSec, 0) : undefined
 
       let cutSucceeded = false
 
-      // ── Cut phase: ffmpeg stream copy (STREAM_END → 1.0) ─────────────────
+      // ── Cut phase: ffmpeg stream copy (cutPhaseStart → 1.0) ──────────────
       if (!signal.aborted) {
         // Snap to the phase boundary so the cut phase never goes backwards
-        perFile[i] = { ...perFile[i], value: STREAM_END, active: true }
+        perFile[i] = { ...perFile[i], value: cutPhaseStart, active: true }
         onProgress([...perFile])
 
         try {
           await runFfmpeg(
-            ['-ss', String(cutMs / 1000), '-i', input, '-c', 'copy', '-y', output],
+            [
+              '-ss', String(startSec),
+              '-i', input,
+              // `-t` (output duration) rather than `-to`: with `-ss` before the
+              // input, `-to` has meant different things across ffmpeg versions.
+              ...(endSec !== null ? ['-t', String(endSec - startSec)] : []),
+              '-c', 'copy',
+              '-y', output
+            ],
             (value) => {
               perFile[i] = {
                 ...perFile[i],
-                value: STREAM_END + value * (1 - STREAM_END),
+                value: cutPhaseStart + value * (1 - cutPhaseStart),
                 active: true
               }
               onProgress([...perFile])
             },
-            signal
+            signal,
+            outputSeconds
           )
           outputs[i] = output
           cutSucceeded = true
@@ -260,6 +339,15 @@ export async function cutVideos(
       if (cutSucceeded) {
         perFile[i] = { ...perFile[i], value: 1, done: true, active: false }
         onProgress([...perFile])
+        // Feed the measured speed back so future estimates sharpen (see estimate.ts).
+        recordThroughput(
+          { kind: 'cutting', cutMode },
+          {
+            durationSec: meta.durationSec,
+            pixels: meta.width && meta.height ? meta.width * meta.height : null,
+            elapsedSec: (Date.now() - startedAt) / 1000
+          }
+        )
       }
     })
   )

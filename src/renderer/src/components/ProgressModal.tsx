@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Box, Button, Group, Modal, Progress, ScrollArea, Stack, Text } from '@mantine/core'
+import { Box, Button, Group, Modal, Progress, Stack, Text } from '@mantine/core'
 import { IconCheck, IconFolderOpen } from '@tabler/icons-react'
 import type { FileProgress } from '@shared/types'
 
@@ -16,6 +16,19 @@ type Props = {
 
 /** Per-row progress-rate tracker for the remaining-time estimate. */
 type RateInfo = { lastValue: number; lastTime: number; rate: number | null }
+
+/**
+ * Size change once a file is done, e.g. "−62%". Positive numbers mean the file
+ * shrank. A grown file is shown too rather than hidden — it is the one case a
+ * user most wants to notice.
+ */
+function formatSizeChange(fp: FileProgress): { label: string; grew: boolean } | null {
+  if (!fp.inputBytes || fp.outputBytes === undefined) return null
+  const change = 1 - fp.outputBytes / fp.inputBytes
+  const percent = Math.round(Math.abs(change) * 100)
+  if (percent === 0) return { label: 'same size', grew: false }
+  return { label: `${change > 0 ? '−' : '+'}${percent}%`, grew: change < 0 }
+}
 
 function formatEta(ms: number): string {
   const totalS = Math.ceil(ms / 1000)
@@ -100,7 +113,10 @@ export function ProgressModal({ opened, jobId, feature, initialFiles, onCancel, 
       size="md"
     >
       <Stack gap="md">
-        <ScrollArea.Autosize mah={360}>
+        {/* A plain scroll box, not ScrollArea.Autosize: that component's inner
+            flex wrapper keeps `min-width: auto`, so a single long file name
+            sizes it past the modal's width and the row Text never ellipses. */}
+        <Box mah={360} style={{ overflowY: 'auto', overflowX: 'hidden' }}>
           <Stack gap="sm" pr={4}>
             {files.map((fp, i) => {
               // Show an estimate only once there is enough signal: some real
@@ -118,13 +134,21 @@ export function ProgressModal({ opened, jobId, feature, initialFiles, onCancel, 
               return (
               <Box key={i}>
                 <Group justify="space-between" mb={4} gap="xs" wrap="nowrap">
-                  <Text size="sm" truncate style={{ flex: 1, minWidth: 0 }}>
+                  <Text size="sm" truncate title={fp.name} style={{ flex: 1, minWidth: 0 }}>
                     {fp.name}
                   </Text>
                   {fp.done ? (
-                    <Group gap={4} c="green" style={{ flexShrink: 0 }}>
-                      <IconCheck size={14} />
+                    <Group gap={4} style={{ flexShrink: 0 }} wrap="nowrap">
+                      <IconCheck size={14} color="var(--mantine-color-green-6)" />
                       <Text size="xs" c="green">Done</Text>
+                      {(() => {
+                        const change = formatSizeChange(fp)
+                        return change ? (
+                          <Text size="xs" c={change.grew ? 'orange' : 'dimmed'}>
+                            · {change.label}
+                          </Text>
+                        ) : null
+                      })()}
                     </Group>
                   ) : (
                     <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
@@ -154,7 +178,7 @@ export function ProgressModal({ opened, jobId, feature, initialFiles, onCancel, 
               </Text>
             )}
           </Stack>
-        </ScrollArea.Autosize>
+        </Box>
 
         {allDone || finished ? (
           <Group justify="center">

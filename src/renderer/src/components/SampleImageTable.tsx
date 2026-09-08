@@ -12,7 +12,15 @@ type Props = {
 
 export function SampleImageTable({ samples, selectedId, onSelect, onRemove }: Props) {
   return (
-    <Table striped highlightOnHover withTableBorder withColumnBorders>
+    // tableLayout: 'fixed' keeps a long sample name truncating rather than
+    // stretching the column (see VideoTable for the same reason).
+    <Table
+      striped
+      highlightOnHover
+      withTableBorder
+      withColumnBorders
+      style={{ tableLayout: 'fixed' }}
+    >
       <Table.Thead>
         <Table.Tr>
           <Table.Th w={40} />
@@ -26,7 +34,7 @@ export function SampleImageTable({ samples, selectedId, onSelect, onRemove }: Pr
           <Table.Tr>
             <Table.Td colSpan={4}>
               <Text c="dimmed" ta="center" py="md" size="sm">
-                No sample images. Click &ldquo;Add Sample&rdquo; to get started.
+                No sample images. Click &ldquo;Add sample image&rdquo; to get started.
               </Text>
             </Table.Td>
           </Table.Tr>
@@ -46,7 +54,7 @@ export function SampleImageTable({ samples, selectedId, onSelect, onRemove }: Pr
                 />
               </Table.Td>
               <Table.Td>
-                <Text size="sm" truncate="end" title={s.path}>
+                <Text size="sm" truncate="end" title={s.name}>
                   {s.name}
                 </Text>
               </Table.Td>

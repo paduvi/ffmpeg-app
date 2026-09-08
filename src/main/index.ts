@@ -11,6 +11,7 @@ import { registerCompressionHandlers } from './ipc/compression'
 import { registerCuttingHandlers } from './ipc/cutting'
 import { registerSamplesHandlers } from './ipc/samples'
 import { registerGpuHandlers } from './ipc/gpu'
+import { registerMediaHandlers } from './ipc/media'
 import { initOnnxSession } from './services/onnx'
 import { initUpdater } from './updater'
 
@@ -66,6 +67,7 @@ async function bootstrap(): Promise<void> {
   registerCuttingHandlers()
   registerSamplesHandlers()
   registerGpuHandlers()
+  registerMediaHandlers()
   ipcMain.handle('app:quit', () => app.quit())
   ipcMain.handle('app:getVersion', () => app.getVersion())
   initUpdater()
