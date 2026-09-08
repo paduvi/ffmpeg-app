@@ -2,9 +2,11 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import store from '../store'
 import log from '../logger'
+import { app } from 'electron'
 import {
-  parseRegistryVram,
+  parseRegExeVram,
   resolveVramMb,
+  SATURATED_ADAPTER_RAM_MB,
   type RegistryVram,
   type WindowsAdapter
 } from './gpuVram'
@@ -22,6 +24,12 @@ const POWERSHELL_CANDIDATES = [
   'powershell.exe'
 ]
 
+/** `execFile`'s rejection carries the partial output; pull it out safely. */
+function stdoutOf(err: unknown): string {
+  const value = (err as { stdout?: unknown } | null)?.stdout
+  return typeof value === 'string' ? value : ''
+}
+
 async function runPowerShell(command: string): Promise<string> {
   let lastErr: unknown
   for (const exe of POWERSHELL_CANDIDATES) {
@@ -31,7 +39,18 @@ async function runPowerShell(command: string): Promise<string> {
       })
       return stdout
     } catch (err) {
+      // PowerShell exits non-zero when *any* error touched the pipeline, even one
+      // it was told to ignore, and `execFile` rejects on that exit code alone — so
+      // a complete, valid result on stdout would otherwise be thrown away. Only a
+      // run that produced nothing counts as a failure.
+      const stdout = stdoutOf(err)
+      if (stdout.trim()) return stdout
       lastErr = err
+      // Another candidate only helps when *this* executable was the problem
+      // (ENOENT/EACCES). A timeout means the shell started and the query never
+      // finished — wedged WMI, or EDR/AppLocker holding the process — and every
+      // other shell would hang identically, so don't pay the timeout three times.
+      if ((err as { killed?: boolean } | null)?.killed) break
     }
   }
   throw lastErr instanceof Error ? lastErr : new Error('No usable PowerShell executable found')
@@ -79,60 +98,125 @@ async function detectDarwin(): Promise<GpuInfo> {
   }
 }
 
+/** Generous next to a measured ~460 ms cold start; this only catches a hang. */
+const GPU_INFO_TIMEOUT_MS = 5000
+
+/**
+ * PCI vendor IDs, as Chromium reports them in `gpuDevice[].vendorId`. This is
+ * the authoritative signal — a marketing name need not contain the vendor, and
+ * Windows' own software adapter ("Microsoft Basic Render Driver", 0x1414) must
+ * not be mistaken for hardware. Anything unlisted falls back to the name.
+ */
+const PCI_VENDORS: Record<number, GpuVendor> = {
+  0x10de: 'nvidia',
+  0x1002: 'amd',
+  0x1022: 'amd',
+  0x8086: 'intel',
+  0x106b: 'apple'
+}
+
+/**
+ * Display adapters straight from Chromium's GPU process — no child process at
+ * all, so this survives a PowerShell that is missing, policy-blocked, or wedged
+ * behind a broken WMI repository. Returns the same model string and a
+ * byte-identical `driverVersion` as the CIM query it replaces, but no memory
+ * figure — hence the separate registry lookup.
+ */
+async function adaptersFromElectron(): Promise<WindowsAdapter[]> {
+  if (!app.isReady()) return []
+  try {
+    // `getGPUInfo('complete')` carries no timeout and is reported never to settle
+    // on some GPU-disabled configurations, so an unguarded await could hang
+    // detection forever — worse than the shell it replaces.
+    const info = (await Promise.race([
+      app.getGPUInfo('complete'),
+      new Promise((resolve) => setTimeout(() => resolve(null), GPU_INFO_TIMEOUT_MS))
+    ])) as {
+      gpuDevice?: Array<{ deviceString?: string; vendorId?: number; driverVersion?: string }>
+    } | null
+    if (!info) {
+      log.debug('Electron GPU info timed out, falling back to PowerShell')
+      return []
+    }
+    return (info.gpuDevice ?? [])
+      .filter((d) => d.deviceString)
+      .map((d) => ({
+        Name: d.deviceString,
+        DriverVersion: d.driverVersion,
+        VendorId: d.vendorId
+      }))
+  } catch (err) {
+    log.debug(`Electron GPU info unavailable, falling back to PowerShell: ${String(err)}`)
+    return []
+  }
+}
+
+/** Same list via WMI. Only reached when Chromium reported nothing usable. */
+async function adaptersFromCim(): Promise<WindowsAdapter[]> {
+  const stdout = await runPowerShell(
+    'Get-CimInstance Win32_VideoController | Select-Object Name, AdapterRAM, DriverVersion | ConvertTo-Json'
+  )
+  const parsed = JSON.parse(stdout) as WindowsAdapter | WindowsAdapter[]
+  return Array.isArray(parsed) ? parsed : [parsed]
+}
+
 // Display adapters' driver class. Each subkey is one installed driver, and
 // carries the true VRAM that Win32_VideoController.AdapterRAM cannot express.
 const DISPLAY_CLASS_KEY =
-  'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}'
+  'HKLM\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}'
 
-const REGISTRY_VRAM_COMMAND = [
-  "$ErrorActionPreference='SilentlyContinue';",
-  `Get-ChildItem '${DISPLAY_CLASS_KEY}' | ForEach-Object {`,
-  '  $p = Get-ItemProperty -Path $_.PSPath;',
-  '  if ($p.DriverDesc) {',
-  // REG_QWORD on modern drivers; older ones only have the 32-bit MemorySize,
-  // which may come back as REG_BINARY and needs unpacking.
-  "    $q = $p.'HardwareInformation.qwMemorySize';",
-  "    if ($null -eq $q) { $q = $p.'HardwareInformation.MemorySize' }",
-  '    if ($q -is [byte[]]) { $q = [System.BitConverter]::ToUInt32($q, 0) }',
-  '    if ($null -ne $q) {',
-  '      [pscustomobject]@{ Name = [string]$p.DriverDesc; Bytes = [string]$q }',
-  '    }',
-  '  }',
-  '} | ConvertTo-Json -Compress'
-].join(' ')
+/** `HardwareInformation.MemorySize` is the pre-QWORD spelling; it saturates. */
+const VRAM_VALUE_NAMES = [
+  'DriverDesc',
+  'HardwareInformation.qwMemorySize',
+  'HardwareInformation.MemorySize'
+]
+
+function runRegQuery(valueName: string): Promise<string> {
+  const exe = `${process.env.SystemRoot ?? 'C:\\Windows'}\\System32\\reg.exe`
+  return execFileAsync(exe, ['query', DISPLAY_CLASS_KEY, '/s', '/v', valueName], {
+    timeout: 10000
+  }).then(({ stdout }) => stdout)
+}
 
 /**
  * True VRAM per driver, or `[]` if anything goes wrong.
  *
- * Deliberately a second PowerShell call rather than one combined query: the
- * adapter list already works, and a registry read that fails on some machine
- * must not take the whole probe down with it.
+ * `reg.exe` rather than PowerShell: an in-box OS component with no scripting
+ * engine behind it, so it survives the policies that block script hosts, and it
+ * skips the class key's ACL-protected `Properties` subkey silently instead of
+ * exiting non-zero over it. Kept separate from the adapter list so that a
+ * registry read failing on some machine cannot take the whole probe down.
  */
 async function readRegistryVram(): Promise<RegistryVram[]> {
   try {
-    return parseRegistryVram(await runPowerShell(REGISTRY_VRAM_COMMAND))
+    const [names, qw, dw] = await Promise.all(VRAM_VALUE_NAMES.map(runRegQuery))
+    return parseRegExeVram(names, qw, dw)
   } catch (err) {
-    log.debug(`GPU registry VRAM lookup failed, falling back to AdapterRAM: ${String(err)}`)
+    log.debug(`GPU registry VRAM lookup failed: ${String(err)}`)
     return []
   }
 }
 
 async function detectWin32(): Promise<GpuInfo> {
-  const stdout = await runPowerShell(
-    'Get-CimInstance Win32_VideoController | Select-Object Name, AdapterRAM, DriverVersion | ConvertTo-Json'
-  )
-  const parsed = JSON.parse(stdout) as WindowsAdapter | WindowsAdapter[]
-  const adapters = Array.isArray(parsed) ? parsed : [parsed]
-  const registry = await readRegistryVram()
+  // Independent lookups, so run them together.
+  const [adapters, registry] = await Promise.all([adaptersFromElectron(), readRegistryVram()])
+
+  // Chromium is the primary source; WMI is the last resort if it reported
+  // nothing usable. Only that path yields AdapterRAM, hence the VRAM fallback
+  // inside resolveVramMb.
+  const resolved = adapters.length ? adapters : await adaptersFromCim()
 
   // Multi-GPU machines (e.g. NVIDIA dGPU + Intel iGPU): prefer the most
   // capable vendor for the encoder ladder.
   const rank: Record<GpuVendor, number> = { nvidia: 4, amd: 3, intel: 2, apple: 1, none: 0 }
   let best: GpuInfo = { vendor: 'none', model: 'Unknown' }
-  for (const adapter of adapters) {
+  for (const adapter of resolved) {
     const model = adapter.Name ?? ''
     const info: GpuInfo = {
-      vendor: vendorFromName(model),
+      vendor:
+        (adapter.VendorId !== undefined ? PCI_VENDORS[adapter.VendorId] : undefined) ??
+        vendorFromName(model),
       model,
       vramMb: resolveVramMb(adapter, registry),
       driverVersion: adapter.DriverVersion ?? undefined
@@ -142,17 +226,23 @@ async function detectWin32(): Promise<GpuInfo> {
   return best
 }
 
+const DETECTION_FAILED_MODEL = 'Unknown (detection failed)'
+
 /**
  * Detect the GPU once and cache the result in electron-store.
  * `force` re-runs detection (the Settings "re-probe" action).
  */
-const DETECTION_FAILED_MODEL = 'Unknown (detection failed)'
-
 export async function detectGpu(force = false): Promise<GpuInfo> {
   if (!force) {
     const cached = store.get('gpuInfo')
-    // Ignore a previously cached failure so we retry instead of returning it forever.
-    if (cached && cached.model !== DETECTION_FAILED_MODEL) return cached
+    // Discard a cached failure so we retry rather than return it forever, and a
+    // cached saturated AdapterRAM so upgraded installs stop showing 4 GB for a
+    // larger card without needing a manual "Re-detect hardware".
+    const stale =
+      !cached ||
+      cached.model === DETECTION_FAILED_MODEL ||
+      cached.vramMb === SATURATED_ADAPTER_RAM_MB
+    if (!stale) return cached
   }
 
   try {
