@@ -48,6 +48,20 @@ win:
   target:
     - nsis
     - msi
+    # Portable build: the win-unpacked tree zipped as-is, no installer. On
+    # Windows ArchiveTarget is constructed with isWriteUpdateInfo=false (only
+    # the mac zip gets update info), so this never lands in latest.yml and
+    # cannot compete with nsis for electron-updater. Note the archive has no
+    # wrapping folder — extract it into a directory of your own.
+    - zip
+# Per-machine install (ALLUSERS=1): Windows asks for elevation once, up front,
+# before anything is written. The electron-builder default is per-user
+# (ALLUSERS=2 + MSIINSTALLPERUSER=1), which installs into %LOCALAPPDATA% and
+# gives no UAC prompt at all — leaving a machine-wide app installed for one
+# user only. Set on `msi:` rather than `win:` so the NSIS one-click installer
+# keeps its own (per-user) behaviour.
+msi:
+  perMachine: true
 publish:
   provider: github
   releaseType: release

@@ -155,6 +155,9 @@ jobs:
             echo "No Intel feed in this run (Intel build optional)"
           fi
 
+      # *.zip covers two different things: the macOS update artifact (which
+      # electron-updater needs — it cannot update from a dmg) and the Windows
+      # portable build, DogyMpegApp-<version>-win.zip.
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:

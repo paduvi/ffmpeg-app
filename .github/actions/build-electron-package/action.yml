@@ -71,8 +71,36 @@ runs:
         fi
         echo "OK: all native binaries are darwin/$ARCH"
 
+    # Windows ships three artifacts: nsis (.exe), msi, and a portable zip.
+    # `if-no-files-found: error` below only fires when *nothing* matched, so a
+    # silently dropped target would still upload a green-looking bundle —
+    # assert each one landed before we upload.
+    - name: Verify Windows artifacts (Windows)
+      if: contains(inputs.eb-args, '--win')
+      shell: bash
+      run: |
+        set -uo pipefail
+        fail=0
+        for pat in 'release/*.exe' 'release/*.msi' 'release/*-win.zip'; do
+          # shellcheck disable=SC2086
+          found=$(ls -1 $pat 2>/dev/null || true)
+          if [[ -z "$found" ]]; then
+            echo "::error::no artifact matched $pat"
+            fail=1
+          else
+            echo "  $pat -> $found"
+          fi
+        done
+        if [[ $fail -ne 0 ]]; then
+          echo "::error::Windows packaging did not produce every expected target (nsis + msi + portable zip)."
+          exit 1
+        fi
+        echo "OK: nsis, msi and portable zip all present"
+
     # latest*.yml are the electron-updater feeds; .blockmap enables
     # differential downloads. Both must reach the GitHub Release.
+    # release/*.zip covers both the mac update artifact and the Windows
+    # portable build (DogyMpegApp-<version>-win.zip).
     # Single-level globs only: release/** would sweep the win-unpacked/ and
     # mac-arm64/ staging trees (raw app .exe, elevate.exe, unpacked ffmpeg)
     # into the artifact — installers and feeds live at the release/ root.
